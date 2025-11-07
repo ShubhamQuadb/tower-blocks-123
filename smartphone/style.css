@@ -81,6 +81,12 @@ h1 {
   margin: 4px auto 6px;
   box-shadow: 0 3px 15px rgba(255, 255, 0, 0.2);
   touch-action: none; /* Prevent scrolling on touch */
+  display: none; /* Hide game canvas initially - will show when game starts */
+}
+
+/* Show game canvas when home is not visible (game started) */
+body:not(.home-visible) #pacman {
+  display: block;
 }
 
 #pacman canvas {
@@ -646,6 +652,19 @@ h1 {
 body.home-visible .controls {
   display: none !important;
   visibility: hidden !important;
+}
+
+/* Hide game canvas and wrapper when home is visible, show when game starts */
+body.home-visible .game-wrapper,
+body.home-visible #pacman {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Show game wrapper when home is not visible (game started) */
+body:not(.home-visible) .game-wrapper {
+  display: flex !important;
+  visibility: visible !important;
 }
 
 /* Show controls when home screen is hidden (game playing) */

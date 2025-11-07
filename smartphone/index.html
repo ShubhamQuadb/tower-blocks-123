@@ -109,8 +109,8 @@
       Tap the arrow buttons to move Pac-Man and eat all dots
     </p>
 
-    <!-- Game Wrapper -->
-    <div class="game-wrapper">
+    <!-- Game Wrapper (hidden initially, shown when game starts) -->
+    <div class="game-wrapper" style="display:none;">
       <div id="pacman" aria-label="Pacman Canvas Wrapper"></div>
     </div>
 
@@ -263,7 +263,8 @@
             var home=document.getElementById('home');
             if(home){ 
               home.style.display='none'; 
-              document.body.classList.remove('home-visible'); // Remove class to show controls
+              // Don't remove home-visible class yet - wait for game to actually start
+              // It will be removed when gamePlaying event fires
             }
             // Hide banner when game starts (direct call like Space Battle)
             try{ hideBanner(); }catch(e){}
@@ -371,6 +372,8 @@
           
           window.addEventListener('gamePlaying', function() {
             console.log('Pacman: Received gamePlaying event');
+            // Remove home-visible class when game actually starts playing (controls should show now)
+            document.body.classList.remove('home-visible');
             updateButtonStates('PLAYING');
           });
           
