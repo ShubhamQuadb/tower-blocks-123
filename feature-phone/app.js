@@ -310,6 +310,10 @@ Pacman.User = function (game, map) {
     function getLives() {
         return lives;
     };
+    
+    function addLife() {
+        lives += 1;
+    };
 
     function initUser() {
         score = 0;
@@ -519,6 +523,7 @@ Pacman.User = function (game, map) {
         "drawDead"      : drawDead,
         "loseLife"      : loseLife,
         "getLives"      : getLives,
+        "addLife"       : addLife,
         "score"         : score,
         "addScore"      : addScore,
         "theScore"      : theScore,
@@ -888,6 +893,13 @@ var PACMAN = (function () {
         user.reset();
         map.reset();
         map.draw(ctx);
+        
+        // Cache ads when starting game
+        console.log("Pacman: Caching ads on game start");
+        if (typeof gameCacheAd === 'function') {
+            gameCacheAd();
+        }
+        
         startLevel();
     }
 
@@ -929,7 +941,80 @@ var PACMAN = (function () {
         user.loseLife();
         if (user.getLives() > 0) {
             startLevel();
+        } else {
+            // Game Over - check for rewarded ad
+            console.log("Pacman: Game Over - checking for rewarded ad");
+            handleGameOver();
         }
+    }
+    
+    function handleGameOver() {
+        // Check if rewarded ad is available
+        if (typeof isRVReady !== 'undefined' && isRVReady) {
+            console.log("Pacman: Rewarded ad available - showing confirm dialog");
+            showRewardedAdConfirm();
+        } else {
+            console.log("Pacman: No rewarded ad available - posting score and showing interstitial");
+            postScoreAndShowAd();
+        }
+    }
+    
+    function showRewardedAdConfirm() {
+        // Show confirmation dialog for rewarded ad
+        var accept = confirm("Watch an ad to get an extra life and continue playing?");
+        
+        if (accept) {
+            console.log("Pacman: User accepted rewarded ad");
+            if (typeof showAdRewarded === 'function') {
+                showAdRewarded();
+            }
+        } else {
+            console.log("Pacman: User rejected rewarded ad");
+            postScoreAndShowAd();
+        }
+    }
+    
+    function postScoreAndShowAd() {
+        // Post score
+        console.log("Pacman: Posting score:", user.theScore());
+        if (typeof postScore === 'function') {
+            postScore(user.theScore());
+        }
+        
+        // Show interstitial ad
+        console.log("Pacman: Showing interstitial ad");
+        if (typeof showAd === 'function') {
+            showAd();
+        }
+        
+        // Re-cache ads after game over
+        setTimeout(function() {
+            console.log("Pacman: Re-caching ads after game over");
+            if (typeof gameCacheAd === 'function') {
+                gameCacheAd();
+            }
+        }, 1000);
+    }
+    
+    function gratifyUser() {
+        // Called when rewarded ad is completed successfully
+        console.log("Pacman: Gratifying user with extra life");
+        user.addLife();
+        startLevel();
+        
+        // Re-cache ads after rewarded ad
+        setTimeout(function() {
+            console.log("Pacman: Re-caching ads after rewarded ad");
+            if (typeof gameCacheAd === 'function') {
+                gameCacheAd();
+            }
+        }, 1000);
+    }
+    
+    function rvSkipped() {
+        // Called when rewarded ad is skipped
+        console.log("Pacman: Rewarded ad skipped - posting score");
+        postScoreAndShowAd();
     }
 
     function setState(nState) { 
@@ -1093,6 +1178,21 @@ var PACMAN = (function () {
         level += 1;
         map.draw(ctx);
         dialog("🎉 Congratulations! Level " + (level - 1) + " Complete!");
+        
+        // Show interstitial ad on level complete
+        console.log("Pacman: Level complete - showing interstitial ad");
+        if (typeof showAd === 'function') {
+            showAd();
+        }
+        
+        // Re-cache ads after level complete
+        setTimeout(function() {
+            console.log("Pacman: Re-caching ads after level complete");
+            if (typeof gameCacheAd === 'function') {
+                gameCacheAd();
+            }
+        }, 1000);
+        
         setTimeout(function() {
             map.reset();
             user.newLevel();
@@ -1210,7 +1310,9 @@ var PACMAN = (function () {
     };
     
     return {
-        "init" : init
+        "init" : init,
+        "gratifyUser" : gratifyUser,
+        "rvSkipped" : rvSkipped
     };
     
 }());
