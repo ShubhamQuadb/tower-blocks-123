@@ -851,6 +851,9 @@ var PACMAN = (function () {
     function keyDown(e) {
         if (e.keyCode === KEY.N) {
             startNewGame();
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
         } else if (e.keyCode === KEY.S) {
             // Toggle sound state first
             var wasDisabled = soundDisabled();
@@ -864,23 +867,33 @@ var PACMAN = (function () {
                     audio.resume();
                 }
             }
-        } else if ((e.keyCode === KEY.P || e.keyCode === KEY.ENTER) && state === PAUSE) {
-            // Resume on Enter or P button
-            audio.resume();
-            map.draw(ctx);
-            setState(stored);
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
         } else if (e.keyCode === KEY.P || e.keyCode === KEY.ENTER) {
-            // Pause on Enter or P button (but only if game is playing, not waiting)
-            if (state === PLAYING || state === COUNTDOWN) {
+            // Handle pause/resume toggle
+            if (state === PAUSE) {
+                // Resume game
+                audio.resume();
+                map.draw(ctx);
+                setState(stored);
+                console.log("Pacman: Game resumed from pause");
+            } else if (state === PLAYING || state === COUNTDOWN) {
+                // Pause game
                 stored = state;
                 setState(PAUSE);
                 audio.pause();
                 map.draw(ctx);
                 dialog("Paused");
+                console.log("Pacman: Game paused");
             } else if (state === WAITING) {
                 // Start game if waiting
                 startNewGame();
+                console.log("Pacman: Game started from waiting");
             }
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
         } else if (state !== PAUSE) {   
             return user.keyDown(e);
         }

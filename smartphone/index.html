@@ -202,22 +202,54 @@
 
         function bindBtn(btn) {
           const code = parseInt(btn.getAttribute('data-key'), 10);
-          // Mouse
-          btn.addEventListener('mousedown', function(){ startRepeat(code); });
-          btn.addEventListener('mouseup', stopRepeat);
-          btn.addEventListener('mouseleave', stopRepeat);
-          btn.addEventListener('click', function(e){ e.preventDefault(); });
-          // Touch (better for Android)
+          var touchHandled = false;
+          
+          // Touch (better for Android) - handle first
           btn.addEventListener('touchstart', function(e){ 
-            e.preventDefault(); 
+            e.preventDefault();
+            touchHandled = true;
             startRepeat(code);
             // Haptic feedback for Android
             if (navigator.vibrate) {
               navigator.vibrate(10);
             }
           }, {passive:false});
-          btn.addEventListener('touchend', function(e){ e.preventDefault(); stopRepeat(); }, {passive:false});
-          btn.addEventListener('touchcancel', stopRepeat, {passive:true});
+          
+          btn.addEventListener('touchend', function(e){ 
+            e.preventDefault(); 
+            stopRepeat();
+            // Reset flag after delay to prevent mouse event
+            setTimeout(function() {
+              touchHandled = false;
+            }, 300);
+          }, {passive:false});
+          
+          btn.addEventListener('touchcancel', function() {
+            stopRepeat();
+            setTimeout(function() {
+              touchHandled = false;
+            }, 300);
+          }, {passive:true});
+          
+          // Mouse (only if touch wasn't handled)
+          btn.addEventListener('mousedown', function(e){
+            if (!touchHandled) {
+              startRepeat(code);
+            }
+          });
+          btn.addEventListener('mouseup', function(e) {
+            if (!touchHandled) {
+              stopRepeat();
+            }
+          });
+          btn.addEventListener('mouseleave', function(e) {
+            if (!touchHandled) {
+              stopRepeat();
+            }
+          });
+          btn.addEventListener('click', function(e){ 
+            e.preventDefault();
+          });
         }
 
         document.addEventListener('DOMContentLoaded', function(){
@@ -259,7 +291,10 @@
               document.dispatchEvent(ev);
             }catch(e){}
           }
-          if(btnStart){ btnStart.addEventListener('click',function(){
+          if(btnStart){ btnStart.addEventListener('click',function(e){
+            e.preventDefault();
+            e.stopPropagation();
+            
             var home=document.getElementById('home');
             if(home){ 
               home.style.display='none'; 
@@ -269,9 +304,11 @@
             // Hide banner when game starts (direct call like Space Battle)
             try{ hideBanner(); }catch(e){}
             setTimeout(function(){ 
+              console.log('Pacman: Home Start button - firing N key');
               fireKey(78); // 'N' to start
               // Toggle buttons: Start will be hidden and Pause shown by gamePlaying event
             }, 150);
+            return false;
           }); }
           if(btnHelp){ btnHelp.addEventListener('click',function(){ if(help){ help.style.display='flex'; } }); }
           if(btnClose){ btnClose.addEventListener('click',function(){ if(help){ help.style.display='none'; } }); }
@@ -310,6 +347,7 @@
           var startBtn = null;
           var pauseBtn = null;
           var currentGameState = 'WAITING';
+          var isProcessingClick = false; // Debounce flag
           
           // Function to update button states (enable/disable)
           function updateButtonStates(newState) {
@@ -392,12 +430,21 @@
                 e.preventDefault();
                 e.stopPropagation();
                 
+                // Debounce check
+                if (isProcessingClick) {
+                  console.log('Pacman: Start button click ignored (debounce)');
+                  return;
+                }
+                
                 if (this.disabled) {
                   console.log('Pacman: Start button is disabled, ignoring click');
                   return;
                 }
                 
                 console.log('Pacman: Start button clicked');
+                
+                // Set debounce flag
+                isProcessingClick = true;
                 
                 // Disable Start button immediately (dim, not clickable)
                 this.disabled = true;
@@ -418,6 +465,12 @@
                 // Fire N key to start game
                 setTimeout(function() {
                   fireKey(78);
+                  console.log('Pacman: Start key (N) fired');
+                  // Reset debounce after action completes (increased to 500ms)
+                  setTimeout(function() {
+                    isProcessingClick = false;
+                    console.log('Pacman: Debounce reset');
+                  }, 500);
                 }, 50);
               });
             }
@@ -427,12 +480,21 @@
                 e.preventDefault();
                 e.stopPropagation();
                 
+                // Debounce check
+                if (isProcessingClick) {
+                  console.log('Pacman: Pause button click ignored (debounce)');
+                  return;
+                }
+                
                 if (this.disabled) {
                   console.log('Pacman: Pause button is disabled, ignoring click');
                   return;
                 }
                 
                 console.log('Pacman: Pause button clicked, current state:', currentGameState);
+                
+                // Set debounce flag
+                isProcessingClick = true;
                 
                 if (currentGameState === 'PLAYING' || currentGameState === 'COUNTDOWN') {
                   // Pause the game - disable Pause, enable Start
@@ -453,7 +515,13 @@
                   
                   // Fire P key to pause
                   setTimeout(function() {
+                    console.log('Pacman: Pause key (P) fired - pausing game');
                     fireKey(80);
+                    // Reset debounce after action completes (increased to 500ms)
+                    setTimeout(function() {
+                      isProcessingClick = false;
+                      console.log('Pacman: Pause debounce reset');
+                    }, 500);
                   }, 50);
                   
                 } else if (currentGameState === 'PAUSE') {
@@ -474,7 +542,13 @@
                   
                   // Fire P key to resume
                   setTimeout(function() {
+                    console.log('Pacman: Pause key (P) fired - resuming game');
                     fireKey(80);
+                    // Reset debounce after action completes (increased to 500ms)
+                    setTimeout(function() {
+                      isProcessingClick = false;
+                      console.log('Pacman: Resume debounce reset');
+                    }, 500);
                   }, 50);
                 }
               });
