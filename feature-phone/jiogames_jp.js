@@ -9,18 +9,15 @@ Do not edit any other part.
 
 //If you are using this script then remove JioGames related all parts from the index.html file. 
 
-var adSpotBanner_key = "banner123";            //Ex. : abc123de
 var adSpotInterstitial_key = "4bot8u3y";       //Ex. : zbjnq9gs
 var adSpotRewardedVideo_key = "dhrczu3s";      //Ex. : 81xnt9bw
 var package = "com.kaifoundry.pacmanJP";              //Ex. : com.vendor.gamename
 var gameName = "pacman";                //Ex. : testgame
 var gameVersion = "V1.0.0";          //Ex. : V1.0.1
-var isBannerReady = false;
 var isAdReady = false;
 var isRVReady = false;
 var isRewardUser = false;
 
-var adSpotBanner = "banner";
 var adSpotInterstitial = "midroll";
 var adSpotRewardedVideo = "rewarded";
 
@@ -44,20 +41,6 @@ window.addEventListener('load', (event) => {
 
     document.head.appendChild(script);
 
-    // Banner Ad Element
-    const insBannerElement = document.createElement('ins');
-    insBannerElement.className = 'adsbyjio';
-    insBannerElement.id = 'banner';
-    insBannerElement.setAttribute('data-adspot-key', adSpotBanner_key);
-    insBannerElement.setAttribute('data-source', package);
-    insBannerElement.setAttribute('data-idfa', package + '_banneridfa');
-    const bannerContainer = document.getElementById('banner-ad-container');
-    if (bannerContainer) {
-        bannerContainer.appendChild(insBannerElement);
-    } else {
-        document.body.appendChild(insBannerElement);
-    }
-
     const insMidrollElement = document.createElement('ins');
     insMidrollElement.className = 'adsbyjio';
     insMidrollElement.id = 'midroll';
@@ -74,14 +57,6 @@ window.addEventListener('load', (event) => {
     insRVElement.setAttribute('data-rewarded', 'true');
     insRVElement.setAttribute('data-idfa', package + '_rewardedidfa');
     document.body.appendChild(insRVElement);
-    
-    // Load banner ad on page load
-    setTimeout(function() {
-        if (typeof JioAds !== 'undefined') {
-            console.log("JioGames: Loading banner ad on page load");
-            JioAds.cacheAd(adSpotBanner);
-        }
-    }, 2000);
 });
 
 function postScore(score) {
@@ -99,7 +74,6 @@ function share(content) {
 function callbacks(){
     JioAds.onAdPrepared = function (adSpotKey) {
         console.log("JioGames: onAdPrepared "+adSpotKey.toString());
-        adSpotKey == adSpotBanner && (isBannerReady = true, console.log("JioGames: onAdPrepared Banner " + isBannerReady));
         adSpotKey == adSpotInterstitial && (isAdReady = true, console.log("JioGames: onAdPrepared MidRoll " + isAdReady));
         adSpotKey == adSpotRewardedVideo && (isRVReady = true, console.log("JioGames: onAdPrepared RewardedVideo " + isRVReady), c2_callFunction("rvReady"));   
     };
@@ -108,7 +82,6 @@ function callbacks(){
 
         console.log("JioGames: onAdClosed "+adSpotKey+" pIsVideoCompleted "+pIsVideoCompleted+" pIsEligibleForReward "+pIsEligibleForReward);
 
-        adSpotKey == adSpotBanner && (isBannerReady = false, console.log("JioGames: onAdClosed Banner " + isBannerReady));
         adSpotKey == adSpotInterstitial && (isAdReady = false, console.log("JioGames: onAdClosed MidRoll " + isAdReady));
         adSpotKey == adSpotRewardedVideo && (isRVReady = false, console.log("JioGames: onAdClosed RewardedVideo " + isRVReady), c2_callFunction("rvNotReady"));
 
@@ -123,7 +96,6 @@ function callbacks(){
     JioAds.onAdFailedToLoad = function (adSpotKey, pDescription){
         console.log("JioGames: onAdFailedToLoad "+adSpotKey+" pDescription "+ JSON.stringify(pDescription));
         
-        adSpotKey == adSpotBanner && (isBannerReady = false, console.log("JioGames: onAdFailedToLoad Banner " + isBannerReady));
         adSpotKey == adSpotInterstitial && (isAdReady = false, console.log("JioGames: onAdFailedToLoad MidRoll " + isAdReady));
         adSpotKey == adSpotRewardedVideo && (isRVReady = false, console.log("JioGames: onAdFailedToLoad RewardedVideo " + isRVReady), c2_callFunction("rvNotReady"));    
     };
@@ -131,7 +103,6 @@ function callbacks(){
     JioAds.onAdMediaEnd = function (adSpotKey, pIsVideoCompleted, pIsEligibleForReward) {
         console.log("JioGames: onAdMediaEnd "+adSpotKey+" pIsVideoCompleted "+pIsVideoCompleted+" rewardpoints "+pIsEligibleForReward);
 
-        adSpotKey == adSpotBanner && (isBannerReady = false, console.log("JioGames: onAdClose Banner " + isBannerReady));
         adSpotKey == adSpotInterstitial && (isAdReady = false, console.log("JioGames: onAdClose MidRoll " + isAdReady));
         adSpotKey == adSpotRewardedVideo && (isRVReady = false, console.log("JioGames: onAdClose RewardedVideo " + isRVReady));
     
