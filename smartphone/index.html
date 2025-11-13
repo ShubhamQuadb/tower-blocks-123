@@ -97,9 +97,8 @@
           <li>Use the on-screen arrows to move Pac-Man.</li>
           <li>Eat all dots to clear the level.</li>
           <li>Power pills make ghosts vulnerable for a short time.</li>
-          <li>Tap Start to begin a new game.</li>
+          <li>Tap the Start/Pause/Resume button to start, pause, or resume the game.</li>
           <li>Use the Sound button to toggle audio on/off.</li>
-          <li>Tap Pause to pause or resume gameplay.</li>
         </ul>
       </div>
     </div>
@@ -116,11 +115,10 @@
 
     <!-- Mobile Controls -->
     <div class="controls" aria-label="Mobile Controls">
-      <!-- Top row: Sound, Start and Pause buttons -->
+      <!-- Top row: Sound and Start/Pause/Resume button -->
       <div class="controls-row controls-top">
         <button class="pill-btn sound-btn" data-key="83" aria-label="Toggle Sound (S)">🔊 Sound</button>
-        <button class="pill-btn btn-start" data-key="78" aria-label="Start (N)">▶ Start</button>
-        <button class="pill-btn btn-pause" data-key="80" aria-label="Pause/Resume (P)" style="display:none;">⏸ Pause</button>
+        <button class="pill-btn btn-start-pause" data-key="78" aria-label="Start/Pause/Resume">▶ Start</button>
       </div>
       <!-- Bottom row: Arrow buttons -->
       <div class="controls-row">
@@ -253,7 +251,8 @@
         }
 
         document.addEventListener('DOMContentLoaded', function(){
-          document.querySelectorAll('.ctrl-btn, .pill-btn').forEach(bindBtn);
+          // Bind buttons except start-pause button (which has custom handler)
+          document.querySelectorAll('.ctrl-btn, .pill-btn:not(.btn-start-pause)').forEach(bindBtn);
           // Splash Pacman eating animation
           (function(){
             var mouth = document.getElementById('mouth');
@@ -285,11 +284,108 @@
           var help=document.getElementById('helpModal');
           var btnClose=document.getElementById('btnCloseHelp');
           function fireKey(code){
-            try{const ev=new KeyboardEvent('keydown',{bubbles:true,cancelable:true,keyCode:code,which:code});
-              Object.defineProperty(ev,'keyCode',{get:function(){return code;}});
-              Object.defineProperty(ev,'which',{get:function(){return code;}});
-              document.dispatchEvent(ev);
-            }catch(e){}
+            try{
+              console.log('Pacman: fireKey called with code:', code);
+              
+              // Try modern approach first
+              var ev = null;
+              try {
+                // Modern browsers - create event with initKeyboardEvent or KeyboardEvent
+                if (typeof KeyboardEvent !== 'undefined') {
+                  ev = new KeyboardEvent('keydown', {
+                    bubbles: true,
+                    cancelable: true,
+                    view: window
+                  });
+                  
+                  // Set keyCode and which using defineProperty for compatibility
+                  Object.defineProperty(ev, 'keyCode', {
+                    get: function() { return code; },
+                    enumerable: true,
+                    configurable: true
+                  });
+                  Object.defineProperty(ev, 'which', {
+                    get: function() { return code; },
+                    enumerable: true,
+                    configurable: true
+                  });
+                  Object.defineProperty(ev, 'charCode', {
+                    get: function() { return 0; },
+                    enumerable: true,
+                    configurable: true
+                  });
+                  
+                  // Also try setting directly (some browsers allow this)
+                  try {
+                    ev.keyCode = code;
+                    ev.which = code;
+                  } catch(e) {
+                    // Ignore if not settable
+                  }
+                }
+              } catch(e) {
+                console.log('Pacman: Modern KeyboardEvent failed, using fallback');
+              }
+              
+              // Fallback for older browsers
+              if (!ev) {
+                try {
+                  ev = document.createEvent('KeyboardEvent');
+                  ev.initKeyboardEvent('keydown', true, true, window, false, false, false, false, 0, code);
+                } catch(e) {
+                  // Final fallback - use generic event
+                  ev = document.createEvent('Event');
+                  ev.initEvent('keydown', true, true);
+                  ev.keyCode = code;
+                  ev.which = code;
+                }
+              }
+              
+              // Ensure keyCode is set
+              if (ev.keyCode !== code) {
+                try {
+                  Object.defineProperty(ev, 'keyCode', {
+                    get: function() { return code; },
+                    enumerable: true,
+                    configurable: true
+                  });
+                  Object.defineProperty(ev, 'which', {
+                    get: function() { return code; },
+                    enumerable: true,
+                    configurable: true
+                  });
+                } catch(e) {
+                  // If defineProperty fails, try direct assignment
+                  ev.keyCode = code;
+                  ev.which = code;
+                }
+              }
+              
+              console.log('Pacman: Dispatching keydown event, keyCode:', ev.keyCode || code, 'which:', ev.which || code);
+              
+              // Dispatch to document - app.js listens with capture phase (true)
+              var result = document.dispatchEvent(ev);
+              console.log('Pacman: Event dispatched successfully, defaultPrevented:', ev.defaultPrevented, 'result:', result);
+              
+              // Also try dispatching directly to window as fallback
+              if (!result) {
+                console.log('Pacman: Trying window.dispatchEvent as fallback');
+                window.dispatchEvent(ev);
+              }
+              
+            }catch(e){
+              console.error('Pacman: Error in fireKey:', e, e.stack);
+              // Last resort - try to call the keyDown function directly if accessible
+              try {
+                if (window.PACMAN && typeof window.PACMAN.keyDown === 'function') {
+                  console.log('Pacman: Attempting direct keyDown call');
+                  var fakeEvent = { keyCode: code, which: code, preventDefault: function(){}, stopPropagation: function(){} };
+                  window.PACMAN.keyDown(fakeEvent);
+                }
+              } catch(e2) {
+                console.error('Pacman: Direct call also failed:', e2);
+              }
+            }
           }
           if(btnStart){ btnStart.addEventListener('click',function(e){
             e.preventDefault();
@@ -306,7 +402,7 @@
             setTimeout(function(){ 
               console.log('Pacman: Home Start button - firing N key');
               fireKey(78); // 'N' to start
-              // Toggle buttons: Start will be hidden and Pause shown by gamePlaying event
+              // Button will change from Start to Pause when gamePlaying event fires
             }, 150);
             return false;
           }); }
@@ -343,224 +439,193 @@
             setInterval(updateSoundIcon, 1000);
           }
           
-          // Two separate buttons: Start and Pause - one active at a time
-          var startBtn = null;
-          var pauseBtn = null;
+          // Single button for Start/Pause/Resume
+          var startPauseBtn = null;
           var currentGameState = 'WAITING';
           var isProcessingClick = false; // Debounce flag
           
-          // Function to update button states (enable/disable)
-          function updateButtonStates(newState) {
+          // Function to update button text and state
+          function updateButtonState(newState) {
             currentGameState = newState;
             
-            if (!startBtn) startBtn = document.querySelector('.btn-start');
-            if (!pauseBtn) pauseBtn = document.querySelector('.btn-pause');
-            
-            if (!startBtn || !pauseBtn) return;
+            if (!startPauseBtn) startPauseBtn = document.querySelector('.btn-start-pause');
+            if (!startPauseBtn) return;
             
             if (newState === 'WAITING') {
-              // Show Start (enabled), hide Pause
-              startBtn.style.display = 'inline-flex';
-              startBtn.disabled = false;
-              startBtn.style.opacity = '1';
-              startBtn.style.cursor = 'pointer';
-              startBtn.classList.remove('btn-disabled');
-              
-              pauseBtn.style.display = 'none';
-              pauseBtn.disabled = true;
-              console.log('Pacman: Start enabled, Pause hidden');
+              // Show Start button
+              startPauseBtn.innerHTML = '▶ Start';
+              startPauseBtn.disabled = false;
+              startPauseBtn.style.opacity = '1';
+              startPauseBtn.style.cursor = 'pointer';
+              startPauseBtn.classList.remove('btn-disabled');
+              startPauseBtn.setAttribute('data-key', '78'); // N key for start
+              startPauseBtn.setAttribute('data-state', 'waiting'); // For CSS styling
+              console.log('Pacman: Button set to Start');
               
             } else if (newState === 'PLAYING' || newState === 'COUNTDOWN') {
-              // Hide Start, show Pause (enabled)
-              startBtn.style.display = 'none';
-              startBtn.disabled = true;
-              startBtn.classList.add('btn-disabled');
-              
-              pauseBtn.style.display = 'inline-flex';
-              pauseBtn.disabled = false;
-              pauseBtn.style.opacity = '1';
-              pauseBtn.style.cursor = 'pointer';
-              pauseBtn.classList.remove('btn-disabled');
-              pauseBtn.innerHTML = '⏸ Pause';
-              console.log('Pacman: Start hidden/disabled, Pause enabled');
+              // Show Pause button
+              startPauseBtn.innerHTML = '⏸ Pause';
+              startPauseBtn.disabled = false;
+              startPauseBtn.style.opacity = '1';
+              startPauseBtn.style.cursor = 'pointer';
+              startPauseBtn.classList.remove('btn-disabled');
+              startPauseBtn.setAttribute('data-key', '80'); // P key for pause
+              startPauseBtn.setAttribute('data-state', 'playing'); // For CSS styling
+              console.log('Pacman: Button set to Pause');
               
             } else if (newState === 'PAUSE') {
-              // Show Start (enabled), show Pause (disabled - dim, not clickable)
-              startBtn.style.display = 'inline-flex';
-              startBtn.disabled = false;
-              startBtn.style.opacity = '1';
-              startBtn.style.cursor = 'pointer';
-              startBtn.classList.remove('btn-disabled');
-              
-              pauseBtn.style.display = 'inline-flex';
-              pauseBtn.disabled = true;
-              pauseBtn.style.opacity = '0.5';
-              pauseBtn.style.cursor = 'not-allowed';
-              pauseBtn.classList.add('btn-disabled');
-              pauseBtn.innerHTML = '▶ Resume';
-              console.log('Pacman: Start enabled, Pause disabled (dim)');
+              // Show Resume button
+              startPauseBtn.innerHTML = '▶ Resume';
+              startPauseBtn.disabled = false;
+              startPauseBtn.style.opacity = '1';
+              startPauseBtn.style.cursor = 'pointer';
+              startPauseBtn.classList.remove('btn-disabled');
+              startPauseBtn.setAttribute('data-key', '80'); // P key for resume
+              startPauseBtn.setAttribute('data-state', 'pause'); // For CSS styling
+              console.log('Pacman: Button set to Resume');
             }
           }
           
           // Set up event listeners IMMEDIATELY
           window.addEventListener('gameWaiting', function() {
             console.log('Pacman: Received gameWaiting event');
-            updateButtonStates('WAITING');
+            updateButtonState('WAITING');
           });
           
           window.addEventListener('gamePlaying', function() {
             console.log('Pacman: Received gamePlaying event');
             // Remove home-visible class when game actually starts playing (controls should show now)
             document.body.classList.remove('home-visible');
-            updateButtonStates('PLAYING');
+            updateButtonState('PLAYING');
           });
           
           window.addEventListener('gamePaused', function() {
             console.log('Pacman: Received gamePaused event');
-            updateButtonStates('PAUSE');
+            updateButtonState('PAUSE');
           });
           
-          // Set up button click handlers
+          // Set up button click handler with touch support
           setTimeout(function() {
-            startBtn = document.querySelector('.btn-start');
-            pauseBtn = document.querySelector('.btn-pause');
+            startPauseBtn = document.querySelector('.btn-start-pause');
             
-            if (startBtn) {
-              startBtn.addEventListener('click', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
+            if (startPauseBtn) {
+              // Function to handle button action
+              function handleButtonAction(e) {
+                if (e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
                 
-                // Debounce check
+                // Debounce check - reduce time to allow faster clicks
                 if (isProcessingClick) {
-                  console.log('Pacman: Start button click ignored (debounce)');
-                  return;
+                  console.log('Pacman: Button action ignored (debounce)');
+                  return false;
                 }
                 
-                if (this.disabled) {
-                  console.log('Pacman: Start button is disabled, ignoring click');
-                  return;
+                if (startPauseBtn && startPauseBtn.disabled) {
+                  console.log('Pacman: Button is disabled, ignoring action');
+                  return false;
                 }
                 
-                console.log('Pacman: Start button clicked');
+                console.log('Pacman: Button action triggered, current state:', currentGameState);
+                console.log('Pacman: Button element:', startPauseBtn);
+                console.log('Pacman: Button innerHTML:', startPauseBtn ? startPauseBtn.innerHTML : 'N/A');
+                console.log('Pacman: Button disabled:', startPauseBtn ? startPauseBtn.disabled : 'N/A');
                 
                 // Set debounce flag
                 isProcessingClick = true;
                 
-                // Disable Start button immediately (dim, not clickable)
-                this.disabled = true;
-                this.style.opacity = '0.5';
-                this.style.cursor = 'not-allowed';
-                this.classList.add('btn-disabled');
+                // Fire the appropriate key - use button text as primary check, state as fallback
+                var keyCode = 0;
+                var buttonText = startPauseBtn ? startPauseBtn.innerHTML.trim() : '';
                 
-                // Show and enable Pause button
-                if (pauseBtn) {
-                  pauseBtn.style.display = 'inline-flex';
-                  pauseBtn.disabled = false;
-                  pauseBtn.style.opacity = '1';
-                  pauseBtn.style.cursor = 'pointer';
-                  pauseBtn.classList.remove('btn-disabled');
-                  pauseBtn.innerHTML = '⏸ Pause';
-                }
-                
-                // Fire N key to start game
-                setTimeout(function() {
-                  fireKey(78);
-                  console.log('Pacman: Start key (N) fired');
-                  // Reset debounce after action completes (increased to 500ms)
-                  setTimeout(function() {
+                // Check button text first (more reliable)
+                if (buttonText.includes('Start') || buttonText.includes('▶ Start')) {
+                  // Start the game - fire N key
+                  keyCode = 78;
+                  console.log('Pacman: Button shows Start, firing N key, keyCode:', keyCode);
+                } else if (buttonText.includes('Pause') || buttonText.includes('⏸') || buttonText.includes('Resume') || buttonText.includes('▶ Resume')) {
+                  // Pause or Resume the game - fire P key (app.js handles based on actual state)
+                  keyCode = 80;
+                  console.log('Pacman: Button shows Pause/Resume, firing P key, keyCode:', keyCode, 'Button text:', buttonText);
+                } else {
+                  // Fallback to state-based logic
+                  if (currentGameState === 'WAITING') {
+                    keyCode = 78;
+                    console.log('Pacman: Fallback - WAITING state, firing N key');
+                  } else if (currentGameState === 'PLAYING' || currentGameState === 'COUNTDOWN' || currentGameState === 'PAUSE') {
+                    keyCode = 80;
+                    console.log('Pacman: Fallback - firing P key based on state:', currentGameState);
+                  } else {
+                    console.error('Pacman: Cannot determine action! Button text:', buttonText, 'State:', currentGameState);
                     isProcessingClick = false;
-                    console.log('Pacman: Debounce reset');
-                  }, 500);
-                }, 50);
-              });
-            }
-            
-            if (pauseBtn) {
-              pauseBtn.addEventListener('click', function(e) {
+                    return false;
+                  }
+                }
+                
+                // Fire the key immediately - app.js will handle based on actual game state
+                if (keyCode > 0) {
+                  console.log('Pacman: About to call fireKey with keyCode:', keyCode);
+                  try {
+                    fireKey(keyCode);
+                    console.log('Pacman: fireKey called successfully');
+                  } catch(err) {
+                    console.error('Pacman: Error calling fireKey:', err);
+                    isProcessingClick = false;
+                    return false;
+                  }
+                } else {
+                  console.error('Pacman: No valid keyCode! Button text:', buttonText, 'State:', currentGameState);
+                  isProcessingClick = false;
+                  return false;
+                }
+                
+                // Reset debounce after shorter delay
+                setTimeout(function() {
+                  isProcessingClick = false;
+                  console.log('Pacman: Debounce reset');
+                }, 200);
+                
+                return true;
+              }
+              
+              // Touch events (for mobile)
+              var touchStartTime = 0;
+              startPauseBtn.addEventListener('touchstart', function(e) {
                 e.preventDefault();
                 e.stopPropagation();
-                
-                // Debounce check
-                if (isProcessingClick) {
-                  console.log('Pacman: Pause button click ignored (debounce)');
-                  return;
+                touchStartTime = Date.now();
+                // Haptic feedback
+                if (navigator.vibrate) {
+                  navigator.vibrate(10);
                 }
-                
-                if (this.disabled) {
-                  console.log('Pacman: Pause button is disabled, ignoring click');
-                  return;
+              }, {passive: false});
+              
+              startPauseBtn.addEventListener('touchend', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                // Only fire if it was a quick tap (not a long press)
+                var touchDuration = Date.now() - touchStartTime;
+                if (touchDuration < 500 && touchDuration > 0) {
+                  console.log('Pacman: Touch end detected, duration:', touchDuration);
+                  handleButtonAction(e);
                 }
-                
-                console.log('Pacman: Pause button clicked, current state:', currentGameState);
-                
-                // Set debounce flag
-                isProcessingClick = true;
-                
-                if (currentGameState === 'PLAYING' || currentGameState === 'COUNTDOWN') {
-                  // Pause the game - disable Pause, enable Start
-                  this.disabled = true;
-                  this.style.opacity = '0.5';
-                  this.style.cursor = 'not-allowed';
-                  this.classList.add('btn-disabled');
-                  this.innerHTML = '▶ Resume';
-                  
-                  // Enable Start button
-                  if (startBtn) {
-                    startBtn.style.display = 'inline-flex';
-                    startBtn.disabled = false;
-                    startBtn.style.opacity = '1';
-                    startBtn.style.cursor = 'pointer';
-                    startBtn.classList.remove('btn-disabled');
-                  }
-                  
-                  // Fire P key to pause
-                  setTimeout(function() {
-                    console.log('Pacman: Pause key (P) fired - pausing game');
-                    fireKey(80);
-                    // Reset debounce after action completes (increased to 500ms)
-                    setTimeout(function() {
-                      isProcessingClick = false;
-                      console.log('Pacman: Pause debounce reset');
-                    }, 500);
-                  }, 50);
-                  
-                } else if (currentGameState === 'PAUSE') {
-                  // Resume the game - disable Start, enable Pause
-                  if (startBtn) {
-                    startBtn.disabled = true;
-                    startBtn.style.opacity = '0.5';
-                    startBtn.style.cursor = 'not-allowed';
-                    startBtn.classList.add('btn-disabled');
-                  }
-                  
-                  // Enable Pause button
-                  this.disabled = false;
-                  this.style.opacity = '1';
-                  this.style.cursor = 'pointer';
-                  this.classList.remove('btn-disabled');
-                  this.innerHTML = '⏸ Pause';
-                  
-                  // Fire P key to resume
-                  setTimeout(function() {
-                    console.log('Pacman: Pause key (P) fired - resuming game');
-                    fireKey(80);
-                    // Reset debounce after action completes (increased to 500ms)
-                    setTimeout(function() {
-                      isProcessingClick = false;
-                      console.log('Pacman: Resume debounce reset');
-                    }, 500);
-                  }, 50);
-                }
-              });
+              }, {passive: false});
+              
+              // Click event (for desktop/mouse) - use capture phase to ensure it fires
+              startPauseBtn.addEventListener('click', function(e) {
+                console.log('Pacman: Click event detected on start-pause button');
+                handleButtonAction(e);
+              }, true); // Use capture phase
             }
             
             // Initial state
-            updateButtonStates('WAITING');
+            updateButtonState('WAITING');
             
             // Export for debugging
             window.pacmanButtonState = {
               getState: function() { return currentGameState; },
-              setState: function(s) { updateButtonStates(s); }
+              setState: function(s) { updateButtonState(s); }
             };
           }, 100);
         });
