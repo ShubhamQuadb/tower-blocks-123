@@ -33,8 +33,11 @@ Pacman.Ghost = function (game, map, colour) {
     
     function getNewCoord(dir, current) { 
         
-        var baseSpeed = 2 + Math.floor((game.getLevel ? game.getLevel() : 0) / 2);
-        var speed  = isVunerable() ? 1 : isHidden() ? baseSpeed + 2 : baseSpeed,
+        var baseSpeed = 1; // Fixed speed at level 1, increases slowly with levels
+        if (game.getLevel && game.getLevel() > 1) {
+            baseSpeed = 1 + Math.floor((game.getLevel() - 1) / 4);
+        }
+        var speed  = isVunerable() ? 1 : isHidden() ? baseSpeed + 1 : baseSpeed,
             xSpeed = (dir === LEFT && -speed || dir === RIGHT && speed || 0),
             ySpeed = (dir === DOWN && speed || dir === UP && -speed || 0);
     
@@ -869,8 +872,10 @@ var PACMAN = (function () {
         ctx.fillStyle = "#FFFF00";
         ctx.font      = "18px Calibri";
         var width = ctx.measureText(text).width,
-            x     = ((map.width * map.blockSize) - width) / 2;        
-        ctx.fillText(text, x, (map.height * 10) + 8);
+            x     = ((map.width * map.blockSize) - width) / 2,
+            // Center vertically in the game area (excluding footer)
+            y     = (map.height * map.blockSize) / 2;        
+        ctx.fillText(text, x, y);
     }
 
     function soundDisabled() {
@@ -1129,7 +1134,7 @@ var PACMAN = (function () {
         } else if (state === WAITING && stateChanged) {            
             stateChanged = false;
             map.draw(ctx);
-            dialog("Press 5 or OK to Start");            
+            // dialog("Press 5 or OK to Start");            
         } else if (state === EATEN_PAUSE && 
                    (tick - timerStart) > (Pacman.FPS / 3)) {
             map.draw(ctx);
@@ -1248,7 +1253,7 @@ var PACMAN = (function () {
         }
         
         map.draw(ctx);
-        dialog("Loading ...");
+        // dialog("Loading ...");
 
         console.log("JioGames: Checking audio support...");
         
@@ -1300,7 +1305,7 @@ var PACMAN = (function () {
         
     function loaded() {
         console.log("=== JioGames: Game Ready! ===");
-        dialog("Press 5 or OK to Start");
+        // dialog("Press 5 or OK to Start");
         
         document.addEventListener("keydown", keyDown, true);
         document.addEventListener("keypress", keyPress, true); 
@@ -1311,6 +1316,7 @@ var PACMAN = (function () {
     
     return {
         "init" : init,
+        "startNewGame" : startNewGame,
         "gratifyUser" : gratifyUser,
         "rvSkipped" : rvSkipped
     };
@@ -1490,25 +1496,18 @@ Object.prototype.clone = function () {
     return newObj;
 };
 
+// Game initialization is now handled by home screen controller
+// Game will start when user clicks start button or presses 5
 $(function(){
-  console.log("=== Game Initialization Starting ===");
-  var el = document.getElementById("pacman");
-
-  if (Modernizr.canvas && Modernizr.localstorage) {
-    console.log("Canvas and LocalStorage supported!");
-    
-    // Skip audio loading for KaiOS - game will work without sound
-    console.log("Initializing game without audio (KaiOS optimization)...");
-    window.setTimeout(function () { 
-      console.log("Starting PACMAN.init()...");
-      PACMAN.init(el, "./audio/"); // Use local path (audio optional)
-      console.log("PACMAN.init() called successfully!");
-    }, 0);
-  } else { 
-    console.error("Browser compatibility issue!");
-    el.innerHTML = "Sorry, this browser doesn't support the game<br /><small>Canvas or LocalStorage not available</small>";
-  }
+  console.log("=== Game Ready - Waiting for user to start from home screen ===");
   
-  console.log("=== Game Initialization Complete ===");
+  // Check browser compatibility but don't auto-start
+  if (!Modernizr.canvas || !Modernizr.localstorage) {
+    console.error("Browser compatibility issue!");
+    var el = document.getElementById("pacman");
+    if (el) {
+      el.innerHTML = "Sorry, this browser doesn't support the game<br /><small>Canvas or LocalStorage not available</small>";
+    }
+  }
 });
 
