@@ -833,6 +833,13 @@ var PACMAN = (function () {
 
     function startNewGame() {
         console.log("Pacman: Starting new game");
+        // Remove game-over class when starting a new game
+        try {
+            if (typeof document !== 'undefined' && document.body) {
+                document.body.classList.remove('game-over');
+            }
+        } catch(e) {}
+        
         setState(WAITING);
         level = 1;
         user.reset();
@@ -909,15 +916,22 @@ var PACMAN = (function () {
     }    
 
     function loseLife() {        
-        setState(WAITING);
         user.loseLife();
         
         if (user.getLives() > 0) {
+            setState(WAITING);
             startLevel();
         } else {
             // Game Over with rewarded continue flow
             var finalScore = user.theScore();
             console.log("Pacman: Game Over - Score: " + finalScore + ", Level: " + level);
+            
+            // Set state to WAITING (this will trigger gameOver event because lives = 0)
+            setState(WAITING);
+            // Draw game over screen immediately
+            map.draw(ctx);
+            dialog("Game Over! Score: " + finalScore + ". Press START");
+            drawFooter();
 
             try {
                 // Direct calls like Space Battle (no typeof checks)
@@ -927,11 +941,23 @@ var PACMAN = (function () {
                         showAdRewarded();
                     } else {
                         postScore(finalScore);
-                        setTimeout(function(){ showAd(); }, 500);
+                        setTimeout(function(){ 
+                            // Redraw after ad delay to ensure canvas is visible
+                            map.draw(ctx);
+                            dialog("Game Over! Score: " + finalScore + ". Press START");
+                            drawFooter();
+                            showAd(); 
+                        }, 500);
                     }
                 } else {
                     postScore(finalScore);
-                    setTimeout(function(){ showAd(); }, 500);
+                    setTimeout(function(){ 
+                        // Redraw after ad delay to ensure canvas is visible
+                        map.draw(ctx);
+                        dialog("Game Over! Score: " + finalScore + ". Press START");
+                        drawFooter();
+                        showAd(); 
+                    }, 500);
                 }
             } catch(e) { console.log(e); }
         }
@@ -944,7 +970,23 @@ var PACMAN = (function () {
         // Dispatch custom events for button toggle in UI
         try {
             if (nState === WAITING) {
-                window.dispatchEvent(new CustomEvent('gameWaiting'));
+                // Check if it's game over (lives <= 0) or just waiting to start
+                var isGameOver = false;
+                try {
+                    if (user && typeof user.getLives === 'function') {
+                        var lives = user.getLives();
+                        isGameOver = (lives <= 0);
+                    }
+                } catch(e) {}
+                
+                if (isGameOver) {
+                    // Game over - dispatch gameOver event to keep canvas visible
+                    window.dispatchEvent(new CustomEvent('gameOver'));
+                    console.log("Pacman: Game Over event dispatched");
+                } else {
+                    // Just waiting to start - dispatch gameWaiting
+                    window.dispatchEvent(new CustomEvent('gameWaiting'));
+                }
             } else if (nState === PLAYING) {
                 window.dispatchEvent(new CustomEvent('gamePlaying'));
             } else if (nState === COUNTDOWN) {
@@ -1065,10 +1107,37 @@ var PACMAN = (function () {
 
         if (state === PLAYING) {
             mainDraw();
-        } else if (state === WAITING && stateChanged) {            
-            stateChanged = false;
-            map.draw(ctx);
-            dialog("Press START button to play a new game");            
+        } else if (state === WAITING) {
+            // Always draw the map in WAITING state to prevent black screen
+            // Redraw map when state changes or periodically (every 60 frames = 2 seconds)
+            if (stateChanged || (tick % 60 === 0)) {
+                if (stateChanged) {
+                    stateChanged = false;
+                }
+                // Always redraw the full map to prevent black screen
+                map.draw(ctx);
+                // Check if it's game over (lives <= 0) or just waiting to start
+                var isGameOver = false;
+                var finalScore = 0;
+                try {
+                    if (user && typeof user.getLives === 'function') {
+                        var lives = user.getLives();
+                        isGameOver = (lives <= 0);
+                        if (isGameOver && typeof user.theScore === 'function') {
+                            finalScore = user.theScore();
+                        }
+                    }
+                } catch(e) {}
+                
+                if (isGameOver) {
+                    dialog("Game Over! Score: " + finalScore + ". Press START");
+                } else {
+                    dialog("Press START button to play a new game");
+                }
+            }
+            // Always draw pills animation and footer to keep screen visible
+            map.drawPills(ctx);
+            drawFooter();
         } else if (state === EATEN_PAUSE && 
                    (tick - timerStart) > (Pacman.FPS / 3)) {
             map.draw(ctx);
