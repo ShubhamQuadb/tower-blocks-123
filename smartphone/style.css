@@ -97,10 +97,12 @@ body:not(.home-visible) #pacman {
   touch-action: none;
 }
 
-/* Mobile Controls - Show when game is playing, hide on home screen */
+/* Mobile Controls - Hidden by default, shown only when game starts */
 .controls {
-  display: block !important;
-  visibility: visible !important;
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
   margin: 4px auto 2px;
   max-width: 100%;
   padding: 0 4px;
@@ -112,6 +114,7 @@ body:not(.home-visible) #pacman {
   width: 100%;
   box-sizing: border-box;
   overflow: visible;
+  transition: opacity 0.3s ease;
 }
 
 .controls-row {
@@ -744,10 +747,13 @@ body:not(.home-visible) #pacman {
   }
 }
 
-/* Hide controls when home screen is visible */
-body.home-visible .controls {
+/* Hide controls when home screen is visible OR when splash screen is visible */
+body.home-visible .controls,
+body:not(.game-playing) .controls {
   display: none !important;
   visibility: hidden !important;
+  opacity: 0 !important;
+  pointer-events: none !important;
 }
 
 /* Hide game canvas and wrapper when home is visible, show when game starts */
@@ -763,10 +769,13 @@ body:not(.home-visible) .game-wrapper {
   visibility: visible !important;
 }
 
-/* Show controls when home screen is hidden (game playing) */
-body:not(.home-visible) .controls {
+/* Show controls only when game is actually playing (not during splash or home) */
+/* This is handled by JavaScript when gamePlaying event fires */
+body.game-playing .controls {
   display: block !important;
   visibility: visible !important;
+  opacity: 1 !important;
+  pointer-events: auto !important;
 }
 
 /* Ensure buttons are always visible and clickable */
