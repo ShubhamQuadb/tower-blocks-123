@@ -512,7 +512,8 @@
           // Set up event listeners IMMEDIATELY
           window.addEventListener('gameWaiting', function() {
             console.log('Pacman: Received gameWaiting event');
-            // Hide controls when game is waiting (on home screen or game over)
+            // This is for initial waiting state (not game over)
+            // Hide controls and show home screen
             document.body.classList.remove('game-playing');
             document.body.classList.add('home-visible');
             
@@ -528,10 +529,44 @@
             updateButtonState('WAITING');
           });
           
+          // Handle game over event separately - keep canvas and controls visible
+          window.addEventListener('gameOver', function() {
+            console.log('Pacman: Received gameOver event');
+            // Game over - keep canvas visible AND show controls so user can start new game
+            document.body.classList.remove('game-playing');
+            document.body.classList.remove('home-visible'); // Remove if it was added
+            document.body.classList.add('game-over'); // Add game-over class to keep canvas visible
+            
+            // Keep controls visible so user can press Start to play again
+            var controls = document.querySelector('.controls');
+            if (controls) {
+              controls.style.display = 'block';
+              controls.style.visibility = 'visible';
+              controls.style.opacity = '1';
+              controls.style.pointerEvents = 'auto';
+              console.log('Pacman: Controls kept visible - game over, user can start new game');
+            }
+            
+            // Ensure canvas stays visible
+            var gameWrapper = document.querySelector('.game-wrapper');
+            var pacman = document.getElementById('pacman');
+            if (gameWrapper) {
+              gameWrapper.style.display = 'flex';
+              gameWrapper.style.visibility = 'visible';
+            }
+            if (pacman) {
+              pacman.style.display = 'block';
+              pacman.style.visibility = 'visible';
+            }
+            
+            updateButtonState('WAITING');
+          });
+          
           window.addEventListener('gamePlaying', function() {
             console.log('Pacman: Received gamePlaying event');
-            // Remove home-visible class when game actually starts playing
+            // Remove home-visible and game-over classes when game actually starts playing
             document.body.classList.remove('home-visible');
+            document.body.classList.remove('game-over');
             // Add game-playing class to show controls
             document.body.classList.add('game-playing');
             
