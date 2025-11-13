@@ -849,7 +849,9 @@ var PACMAN = (function () {
     }
 
     function keyDown(e) {
+        console.log("Pacman: keyDown called, keyCode:", e.keyCode, "which:", e.which, "current state:", state);
         if (e.keyCode === KEY.N) {
+            console.log("Pacman: N key detected, starting new game");
             startNewGame();
             e.preventDefault();
             e.stopPropagation();
@@ -871,25 +873,31 @@ var PACMAN = (function () {
             e.stopPropagation();
             return false;
         } else if (e.keyCode === KEY.P || e.keyCode === KEY.ENTER) {
+            console.log("Pacman: P/ENTER key detected, current state:", state, "KEY.P:", KEY.P, "e.keyCode:", e.keyCode);
             // Handle pause/resume toggle
             if (state === PAUSE) {
                 // Resume game
+                console.log("Pacman: Resuming game from pause state");
                 audio.resume();
                 map.draw(ctx);
                 setState(stored);
                 console.log("Pacman: Game resumed from pause");
             } else if (state === PLAYING || state === COUNTDOWN) {
                 // Pause game
+                console.log("Pacman: Pausing game, stored state:", state);
                 stored = state;
                 setState(PAUSE);
                 audio.pause();
                 map.draw(ctx);
                 dialog("Paused");
-                console.log("Pacman: Game paused");
+                console.log("Pacman: Game paused successfully");
             } else if (state === WAITING) {
                 // Start game if waiting
+                console.log("Pacman: P key pressed in WAITING state, starting new game");
                 startNewGame();
                 console.log("Pacman: Game started from waiting");
+            } else {
+                console.log("Pacman: P key pressed but state is:", state, "- no action taken");
             }
             e.preventDefault();
             e.stopPropagation();
@@ -979,10 +987,10 @@ var PACMAN = (function () {
             ctx.fill();
         }
 
-        ctx.fillStyle = !soundDisabled() ? "#00FF00" : "#FF0000";
-        ctx.font = "bold 16px sans-serif";
-        //ctx.fillText("♪", 10, textBase);
-        ctx.fillText("s", 10, textBase);
+        // Sound indicator removed - was showing red/green dot near score
+        // ctx.fillStyle = !soundDisabled() ? "#00FF00" : "#FF0000";
+        // ctx.font = "bold 16px sans-serif";
+        // ctx.fillText("s", 10, textBase);
 
         ctx.fillStyle = "#FFFF00";
         ctx.font      = "14px Calibri";

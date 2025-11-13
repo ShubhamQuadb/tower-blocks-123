@@ -137,6 +137,18 @@ body:not(.home-visible) #pacman {
   margin: 0 2px;
 }
 
+/* Arrow buttons - bigger size and shifted down */
+.ctrl-btn.btn-up,
+.ctrl-btn.btn-down,
+.ctrl-btn.btn-left,
+.ctrl-btn.btn-right {
+  min-width: 60px !important;
+  min-height: 50px !important;
+  font-size: 20px !important;
+  padding: 8px 12px !important;
+  transform: translateY(5%) !important;
+}
+
 /* Top row for Sound, Start/Pause buttons */
 .controls-top {
   margin-bottom: 6px;
@@ -177,17 +189,6 @@ body:not(.home-visible) #pacman {
   box-shadow: 0 2px 6px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.15);
 }
 
-.btn-start {
-  background: linear-gradient(145deg, #ffd700, #ffaa00);
-  color: #000;
-  font-weight: 800;
-  font-size: 13px;
-}
-
-.btn-start:active {
-  background: linear-gradient(145deg, #ffaa00, #ffd700);
-}
-
 /* Sound and Start/Pause button in top row */
 .controls-top .pill-btn {
   min-width: 70px;
@@ -198,26 +199,45 @@ body:not(.home-visible) #pacman {
   max-width: 48%;
 }
 
-/* Start button styling */
-.btn-start {
+/* Start/Pause/Resume button styling - changes based on state */
+.btn-start-pause {
   background: linear-gradient(145deg, #00ffaa, #00ccff) !important;
   color: #001 !important;
   font-weight: 800 !important;
 }
 
-.btn-start:active:not(.btn-disabled) {
+.btn-start-pause:active:not(.btn-disabled) {
   background: linear-gradient(145deg, #00ccff, #00ffaa) !important;
 }
 
-/* Pause button styling */
-.btn-pause {
-  background: linear-gradient(145deg, #ff6b6b, #ee5a52) !important;
-  color: #fff !important;
-  font-weight: 800 !important;
+/* When button shows "Start" (waiting state) */
+.btn-start-pause[data-state="waiting"] {
+  background: linear-gradient(145deg, #00ffaa, #00ccff) !important;
+  color: #001 !important;
 }
 
-.btn-pause:active:not(.btn-disabled) {
+.btn-start-pause[data-state="waiting"]:active:not(.btn-disabled) {
+  background: linear-gradient(145deg, #00ccff, #00ffaa) !important;
+}
+
+/* When button shows "Pause" (game is playing) */
+.btn-start-pause[data-state="playing"] {
+  background: linear-gradient(145deg, #ff6b6b, #ee5a52) !important;
+  color: #fff !important;
+}
+
+.btn-start-pause[data-state="playing"]:active:not(.btn-disabled) {
   background: linear-gradient(145deg, #ee5a52, #ff6b6b) !important;
+}
+
+/* When button shows "Resume" (game is paused) */
+.btn-start-pause[data-state="pause"] {
+  background: linear-gradient(145deg, #00ffaa, #00ccff) !important;
+  color: #001 !important;
+}
+
+.btn-start-pause[data-state="pause"]:active:not(.btn-disabled) {
+  background: linear-gradient(145deg, #00ccff, #00ffaa) !important;
 }
 
 /* Disabled button styling - dim, light color, not clickable */
@@ -241,17 +261,9 @@ body:not(.home-visible) #pacman {
   filter: grayscale(30%) !important;
 }
 
-/* Start button when disabled */
-.btn-start.btn-disabled,
-.btn-start:disabled {
-  background: linear-gradient(145deg, #666, #444) !important;
-  color: #aaa !important;
-  opacity: 0.4 !important;
-}
-
-/* Pause button when disabled */
-.btn-pause.btn-disabled,
-.btn-pause:disabled {
+/* Start/Pause/Resume button when disabled */
+.btn-start-pause.btn-disabled,
+.btn-start-pause:disabled {
   background: linear-gradient(145deg, #666, #444) !important;
   color: #aaa !important;
   opacity: 0.4 !important;
@@ -303,6 +315,18 @@ body:not(.home-visible) #pacman {
     padding: 4px 6px;
     display: inline-flex !important;
     visibility: visible !important;
+  }
+  
+  /* Arrow buttons - bigger on small phones */
+  .ctrl-btn.btn-up,
+  .ctrl-btn.btn-down,
+  .ctrl-btn.btn-left,
+  .ctrl-btn.btn-right {
+    min-width: 50px !important;
+    min-height: 42px !important;
+    font-size: 16px !important;
+    padding: 6px 10px !important;
+    transform: translateY(5%) !important;
   }
   
   .controls-top .pill-btn {
@@ -363,6 +387,18 @@ body:not(.home-visible) #pacman {
     visibility: visible !important;
   }
   
+  /* Arrow buttons - bigger on medium phones */
+  .ctrl-btn.btn-up,
+  .ctrl-btn.btn-down,
+  .ctrl-btn.btn-left,
+  .ctrl-btn.btn-right {
+    min-width: 58px !important;
+    min-height: 48px !important;
+    font-size: 18px !important;
+    padding: 7px 11px !important;
+    transform: translateY(5%) !important;
+  }
+  
   .controls-top .pill-btn {
     min-width: 75px;
     min-height: 38px;
@@ -417,6 +453,18 @@ body:not(.home-visible) #pacman {
     visibility: visible !important;
   }
   
+  /* Arrow buttons - bigger on large phones */
+  .ctrl-btn.btn-up,
+  .ctrl-btn.btn-down,
+  .ctrl-btn.btn-left,
+  .ctrl-btn.btn-right {
+    min-width: 65px !important;
+    min-height: 55px !important;
+    font-size: 22px !important;
+    padding: 9px 13px !important;
+    transform: translateY(5%) !important;
+  }
+  
   .controls-top .pill-btn {
     min-width: 90px;
     min-height: 42px;
@@ -469,6 +517,18 @@ body:not(.home-visible) #pacman {
     min-height: 60px;
     font-size: 22px;
     padding: 14px 18px;
+  }
+  
+  /* Arrow buttons - bigger on tablets */
+  .ctrl-btn.btn-up,
+  .ctrl-btn.btn-down,
+  .ctrl-btn.btn-left,
+  .ctrl-btn.btn-right {
+    min-width: 95px !important;
+    min-height: 75px !important;
+    font-size: 28px !important;
+    padding: 16px 20px !important;
+    transform: translateY(5%) !important;
   }
   
   .controls-top .pill-btn {
@@ -526,6 +586,18 @@ body:not(.home-visible) #pacman {
     padding: 14px 18px;
   }
   
+  /* Arrow buttons - bigger on tablets (second section) */
+  .ctrl-btn.btn-up,
+  .ctrl-btn.btn-down,
+  .ctrl-btn.btn-left,
+  .ctrl-btn.btn-right {
+    min-width: 95px !important;
+    min-height: 75px !important;
+    font-size: 28px !important;
+    padding: 16px 20px !important;
+    transform: translateY(5%) !important;
+  }
+  
   .controls-row { 
     gap: 18px;
     margin: 10px 0;
@@ -553,6 +625,18 @@ body:not(.home-visible) #pacman {
     min-width: 90px;
     min-height: 65px;
     font-size: 24px;
+  }
+  
+  /* Arrow buttons - bigger on large tablets */
+  .ctrl-btn.btn-up,
+  .ctrl-btn.btn-down,
+  .ctrl-btn.btn-left,
+  .ctrl-btn.btn-right {
+    min-width: 110px !important;
+    min-height: 85px !important;
+    font-size: 32px !important;
+    padding: 18px 22px !important;
+    transform: translateY(5%) !important;
   }
 }
 
@@ -611,6 +695,18 @@ body:not(.home-visible) #pacman {
     font-size: 18px;
     display: inline-block !important;
     visibility: visible !important;
+  }
+  
+  /* Arrow buttons - bigger in landscape */
+  .ctrl-btn.btn-up,
+  .ctrl-btn.btn-down,
+  .ctrl-btn.btn-left,
+  .ctrl-btn.btn-right {
+    min-width: 70px !important;
+    min-height: 60px !important;
+    font-size: 22px !important;
+    padding: 10px 14px !important;
+    transform: translateY(5%) !important;
   }
   
   .controls-row {
@@ -714,6 +810,18 @@ body:not(.home-visible) .controls {
     flex-shrink: 0 !important;
   }
   
+  /* Arrow buttons - bigger on mobile */
+  .ctrl-btn.btn-up,
+  .ctrl-btn.btn-down,
+  .ctrl-btn.btn-left,
+  .ctrl-btn.btn-right {
+    min-width: 60px !important;
+    min-height: 50px !important;
+    font-size: 20px !important;
+    padding: 8px 12px !important;
+    transform: translateY(5%) !important;
+  }
+  
   /* Ensure controls don't overflow on very small screens */
   @media (max-height: 600px) {
     .controls {
@@ -729,6 +837,18 @@ body:not(.home-visible) .controls {
       min-height: 30px !important;
       padding: 3px 6px !important;
       font-size: 11px !important;
+    }
+    
+    /* Arrow buttons on very small screens */
+    .ctrl-btn.btn-up,
+    .ctrl-btn.btn-down,
+    .ctrl-btn.btn-left,
+    .ctrl-btn.btn-right {
+      min-width: 45px !important;
+      min-height: 38px !important;
+      font-size: 14px !important;
+      padding: 5px 8px !important;
+      transform: translateY(5%) !important;
     }
   }
 }
