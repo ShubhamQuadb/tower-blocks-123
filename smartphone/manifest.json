@@ -3,7 +3,7 @@
   "version_code": 1,
   "name": "Pacman Game",
   "short_name": "Pacman",
-  "package": "com.kaifoundry.pacmanSP",
+  "package_name": "com.kaifoundry.pacmanSP",
   "description": "Classic Pacman game for smartphones",
   "start_url": "/index.html",
   "launch_path": "/index.html",
