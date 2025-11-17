@@ -1237,6 +1237,14 @@ var PACMAN = (function () {
             } catch(e) { console.log(e); }
         }, 800);
         
+        // Cache ads for next level/session after showing ad
+        setTimeout(function() {
+            try {
+                gameCacheAd();
+                console.log("Pacman: Ads caching after level complete");
+            } catch(e) { console.log(e); }
+        }, 2000); // Cache after 2 seconds (after ad is shown)
+        
         // Start next level after message display (increased delay to prevent auto-close)
         setTimeout(function() {
             totalGhostsEaten = 0; // Reset ghost count for new level
