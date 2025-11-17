@@ -111,6 +111,7 @@
 
     <!-- Game Wrapper (hidden initially, shown when game starts) -->
     <div class="game-wrapper" style="display:none;">
+      <button id="btnCloseGame" class="close-game-btn" aria-label="Close game and return to home">✕</button>
       <div id="pacman" aria-label="Pacman Canvas Wrapper"></div>
     </div>
 
@@ -300,6 +301,9 @@
               }
             }, 200);
           })();
+          // Track if game has been started by user (to prevent gameWaiting from hiding canvas)
+          var gameStartedByUser = false;
+          
           // Home screen bindings
           var hs=document.getElementById('home');
           var btnStart=document.getElementById('btnStartGame');
@@ -414,14 +418,31 @@
             e.preventDefault();
             e.stopPropagation();
             
+            // Mark that user has started the game
+            gameStartedByUser = true;
+            
             var home=document.getElementById('home');
             if(home){ 
               home.style.display='none'; 
-              // Don't remove home-visible class yet - wait for game to actually start
-              // It will be removed when gamePlaying event fires
             }
             // Hide banner when game starts (direct call like Space Battle)
             try{ hideBanner(); }catch(e){}
+            
+            // Remove home-visible class and show game wrapper immediately
+            document.body.classList.remove('home-visible');
+            var gameWrapper = document.querySelector('.game-wrapper');
+            if (gameWrapper) {
+              gameWrapper.style.display = 'flex';
+              // Force display to prevent any CSS from hiding it
+              gameWrapper.style.setProperty('display', 'flex', 'important');
+            }
+            var pacman = document.getElementById('pacman');
+            if (pacman) {
+              pacman.style.display = 'block';
+              // Force display to prevent any CSS from hiding it
+              pacman.style.setProperty('display', 'block', 'important');
+            }
+            
             setTimeout(function(){ 
               console.log('Pacman: Home Start button - firing N key');
               fireKey(78); // 'N' to start
@@ -512,6 +533,14 @@
           // Set up event listeners IMMEDIATELY
           window.addEventListener('gameWaiting', function() {
             console.log('Pacman: Received gameWaiting event');
+            
+            // Don't hide canvas if user has already started the game
+            // This prevents canvas from disappearing during countdown or initial state
+            if (gameStartedByUser) {
+              console.log('Pacman: Ignoring gameWaiting - game already started by user');
+              return;
+            }
+            
             // This is for initial waiting state (not game over)
             // Hide controls and show home screen
             document.body.classList.remove('game-playing');
@@ -564,11 +593,39 @@
           
           window.addEventListener('gamePlaying', function() {
             console.log('Pacman: Received gamePlaying event');
+            
+            // Don't show controls if home screen is visible (user clicked X to exit)
+            if (document.body.classList.contains('home-visible')) {
+              console.log('Pacman: Ignoring gamePlaying event - home screen is visible');
+              return;
+            }
+            
+            // Clear the home screen control check interval
+            if (window.homeScreenControlCheck) {
+              clearInterval(window.homeScreenControlCheck);
+              window.homeScreenControlCheck = null;
+            }
+            
+            // Mark that game has started (in case event fires before button click)
+            gameStartedByUser = true;
+            
             // Remove home-visible and game-over classes when game actually starts playing
             document.body.classList.remove('home-visible');
             document.body.classList.remove('game-over');
             // Add game-playing class to show controls
             document.body.classList.add('game-playing');
+            
+            // Show game wrapper and canvas - force display with !important via inline style
+            var gameWrapper = document.querySelector('.game-wrapper');
+            if (gameWrapper) {
+              gameWrapper.style.display = 'flex';
+              gameWrapper.style.setProperty('display', 'flex', 'important');
+            }
+            var pacman = document.getElementById('pacman');
+            if (pacman) {
+              pacman.style.display = 'block';
+              pacman.style.setProperty('display', 'block', 'important');
+            }
             
             // Make sure controls are visible when game starts
             var controls = document.querySelector('.controls');
@@ -580,7 +637,43 @@
               console.log('Pacman: Controls shown when game started');
             }
             
+            // Show h1 and instructions when game starts
+            var h1 = document.querySelector('h1');
+            if (h1) {
+              h1.style.display = '';
+            }
+            var instructions = document.getElementById('instructions');
+            if (instructions) {
+              instructions.style.display = '';
+            }
+            
             updateButtonState('PLAYING');
+            
+            // Periodic check to ensure canvas stays visible when game is playing
+            // Clear any existing check
+            if (window.canvasVisibilityCheck) {
+              clearInterval(window.canvasVisibilityCheck);
+            }
+            
+            // Start periodic check to keep canvas visible
+            window.canvasVisibilityCheck = setInterval(function() {
+              if (document.body.classList.contains('game-playing') && !document.body.classList.contains('home-visible')) {
+                var gameWrapper = document.querySelector('.game-wrapper');
+                if (gameWrapper && gameWrapper.style.display !== 'flex') {
+                  gameWrapper.style.display = 'flex';
+                }
+                var pacman = document.getElementById('pacman');
+                if (pacman && pacman.style.display !== 'block') {
+                  pacman.style.display = 'block';
+                }
+              } else {
+                // Clear interval if game is not playing
+                if (window.canvasVisibilityCheck) {
+                  clearInterval(window.canvasVisibilityCheck);
+                  window.canvasVisibilityCheck = null;
+                }
+              }
+            }, 200); // Check every 200ms
           });
           
           window.addEventListener('gamePaused', function() {
@@ -712,6 +805,175 @@
               setState: function(s) { updateButtonState(s); }
             };
           }, 100);
+          
+          // Close Game Button Handler - Return to home screen
+          setTimeout(function() {
+            var btnCloseGame = document.getElementById('btnCloseGame');
+            if (btnCloseGame) {
+              function handleCloseGame(e) {
+                if (e) {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }
+                
+                console.log('Pacman: Close game button clicked - exitToMainMenu()');
+                
+                // Clear canvas visibility check interval
+                if (window.canvasVisibilityCheck) {
+                  clearInterval(window.canvasVisibilityCheck);
+                  window.canvasVisibilityCheck = null;
+                }
+                
+                // Reset flag so gameWaiting can work on next start
+                gameStartedByUser = false;
+                
+                // 1. Hide help modal (if open)
+                var helpModal = document.getElementById('helpModal');
+                if (helpModal) {
+                  helpModal.style.display = 'none';
+                }
+                
+                // 2. Reset game to ready state
+                // Hide game, show home screen
+                document.body.classList.remove('game-playing');
+                document.body.classList.add('home-visible');
+                
+                // Explicitly hide controls and all game UI elements
+                var controls = document.querySelector('.controls');
+                if (controls) {
+                  controls.style.display = 'none';
+                  controls.style.visibility = 'hidden';
+                  controls.style.opacity = '0';
+                  controls.style.pointerEvents = 'none';
+                }
+                
+                // Hide close button
+                var closeBtn = document.getElementById('btnCloseGame');
+                if (closeBtn) {
+                  closeBtn.style.display = 'none';
+                }
+                
+                // Hide h1 and instructions (game UI elements)
+                var h1 = document.querySelector('h1');
+                if (h1) {
+                  h1.style.display = 'none';
+                }
+                var instructions = document.getElementById('instructions');
+                if (instructions) {
+                  instructions.style.display = 'none';
+                }
+                
+                // Show home screen
+                var home = document.getElementById('home');
+                if (home) {
+                  home.style.display = 'flex';
+                }
+                
+                // Hide game wrapper
+                var gameWrapper = document.querySelector('.game-wrapper');
+                if (gameWrapper) {
+                  gameWrapper.style.display = 'none';
+                }
+                
+                // Hide game canvas
+                var pacman = document.getElementById('pacman');
+                if (pacman) {
+                  pacman.style.display = 'none';
+                }
+                
+                // Update button state to waiting
+                if (typeof updateButtonState === 'function') {
+                  updateButtonState('WAITING');
+                }
+                
+                // Fire gameWaiting event to sync state
+                try {
+                  window.dispatchEvent(new CustomEvent('gameWaiting'));
+                } catch(e) {
+                  console.log('Error dispatching gameWaiting:', e);
+                }
+                
+                // 3. Cache ads for next session
+                try {
+                  if (typeof gameCacheAd === 'function') {
+                    console.log('Pacman: Caching interstitial ad');
+                    gameCacheAd(); // Cache interstitial ad (immediate)
+                    
+                    // Cache rewarded video ad after 5 seconds
+                    setTimeout(function() {
+                      console.log('Pacman: Caching rewarded video ad');
+                      if (typeof gameCacheAd === 'function') {
+                        gameCacheAd();
+                      }
+                    }, 5000);
+                  }
+                } catch(e) {
+                  console.log('Error caching ads:', e);
+                }
+                
+                // 4. Show interstitial ad if ready
+                try {
+                  if (typeof showAd === 'function') {
+                    console.log('Pacman: Attempting to show interstitial ad');
+                    showAd(); // Will show ad if ready, otherwise skip
+                  }
+                } catch(e) {
+                  console.log('Error showing ad:', e);
+                }
+                
+                // 5. Set up periodic check to ensure controls stay hidden on home screen
+                // Clear any existing interval
+                if (window.homeScreenControlCheck) {
+                  clearInterval(window.homeScreenControlCheck);
+                }
+                
+                // Check every 500ms to ensure controls are hidden when home-visible
+                window.homeScreenControlCheck = setInterval(function() {
+                  if (document.body.classList.contains('home-visible')) {
+                    var controls = document.querySelector('.controls');
+                    if (controls && (controls.style.display !== 'none' || window.getComputedStyle(controls).display !== 'none')) {
+                      controls.style.display = 'none';
+                      controls.style.visibility = 'hidden';
+                      controls.style.opacity = '0';
+                      controls.style.pointerEvents = 'none';
+                    }
+                    
+                    var closeBtn = document.getElementById('btnCloseGame');
+                    if (closeBtn) {
+                      closeBtn.style.display = 'none';
+                    }
+                    
+                    var h1 = document.querySelector('h1');
+                    if (h1 && h1.style.display !== 'none') {
+                      h1.style.display = 'none';
+                    }
+                    
+                    var instructions = document.getElementById('instructions');
+                    if (instructions && instructions.style.display !== 'none') {
+                      instructions.style.display = 'none';
+                    }
+                  } else {
+                    // Home screen not visible, clear the check
+                    if (window.homeScreenControlCheck) {
+                      clearInterval(window.homeScreenControlCheck);
+                      window.homeScreenControlCheck = null;
+                    }
+                  }
+                }, 500);
+              }
+              
+              // Touch support
+              btnCloseGame.addEventListener('touchstart', function(e) {
+                e.preventDefault();
+                handleCloseGame(e);
+              }, {passive: false});
+              
+              // Click support
+              btnCloseGame.addEventListener('click', function(e) {
+                handleCloseGame(e);
+              });
+            }
+          }, 150);
         });
       })();
     </script>

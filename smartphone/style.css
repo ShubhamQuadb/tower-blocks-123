@@ -71,6 +71,44 @@ h1 {
   margin-bottom: 4px;
   flex-shrink: 1;
   min-height: 0;
+  position: relative;
+}
+
+.close-game-btn {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: rgba(255, 59, 48, 0.9);
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  color: #fff;
+  font-size: 24px;
+  font-weight: bold;
+  cursor: pointer;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  transition: all 0.2s ease;
+  touch-action: manipulation;
+}
+
+.close-game-btn:hover {
+  background: rgba(255, 59, 48, 1);
+  transform: scale(1.1);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.5);
+}
+
+.close-game-btn:active {
+  transform: scale(0.95);
+}
+
+/* Show close button only when game is playing */
+body.game-playing .close-game-btn {
+  display: flex !important;
 }
 
 #pacman {
@@ -85,8 +123,14 @@ h1 {
 }
 
 /* Show game canvas when home is not visible (game started) */
-body:not(.home-visible) #pacman {
-  display: block;
+body:not(.home-visible) #pacman,
+body.game-playing #pacman {
+  display: block !important;
+}
+
+/* Show game wrapper when game is playing */
+body.game-playing .game-wrapper {
+  display: flex !important;
 }
 
 #pacman canvas {
@@ -301,6 +345,14 @@ body:not(.home-visible) #pacman {
   
   .game-wrapper {
     margin-bottom: 4px;
+  }
+  
+  .close-game-btn {
+    width: 36px;
+    height: 36px;
+    font-size: 20px;
+    bottom: max(12px, env(safe-area-inset-bottom, 12px));
+    right: 12px;
   }
   
   .controls {
@@ -755,6 +807,20 @@ body:not(.game-playing):not(.game-over) .controls {
   visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
+}
+
+/* Hide game UI elements (h1, instructions) when home screen is visible */
+body.home-visible h1,
+body.home-visible #instructions {
+  display: none !important;
+  visibility: hidden !important;
+}
+
+/* Show game UI elements when game is playing */
+body.game-playing h1,
+body.game-playing #instructions {
+  display: block !important;
+  visibility: visible !important;
 }
 
 /* Show controls during game over */
