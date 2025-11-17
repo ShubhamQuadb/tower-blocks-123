@@ -873,6 +873,121 @@ body.game-playing .controls {
   user-select: none;
 }
 
+/* Rewarded video modal */
+.reward-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.78);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+  padding: 16px;
+}
+
+.reward-modal.visible {
+  display: flex;
+}
+
+.reward-modal__card {
+  width: min(420px, 92vw);
+  background: #09121a;
+  border-radius: 16px;
+  border: 1px solid rgba(0, 255, 204, 0.3);
+  padding: 18px;
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.6);
+  color: #e7fbff;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  animation: rewardPop 0.3s ease;
+}
+
+.reward-modal__header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.reward-modal__icon {
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #00ffaa, #00ccff);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 24px;
+}
+
+.reward-modal__title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #77ffdd;
+}
+
+.reward-modal__subtitle {
+  font-size: 13px;
+  color: #a6d8ff;
+}
+
+.reward-modal__body {
+  margin-bottom: 16px;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #cfefff;
+}
+
+.reward-modal__score {
+  margin-top: 8px;
+  font-weight: 600;
+  color: #ffd65c;
+}
+
+.reward-modal__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.reward-modal__btn {
+  width: 100%;
+  border-radius: 12px;
+  border: none;
+  padding: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.1s ease, opacity 0.1s ease;
+}
+
+.reward-modal__btn:active {
+  transform: scale(0.98);
+  opacity: 0.85;
+}
+
+.reward-modal__btn--primary {
+  background: linear-gradient(90deg, #00ffaa, #00ccff);
+  color: #04121f;
+  box-shadow: 0 10px 25px rgba(0, 255, 204, 0.35);
+}
+
+.reward-modal__btn--ghost {
+  background: rgba(255, 255, 255, 0.08);
+  color: #cfefff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+@keyframes rewardPop {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 /* Mobile-specific fixes for button visibility - ensure controls fit on screen */
 @media (max-width: 767px) {
   body {
