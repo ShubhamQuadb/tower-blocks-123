@@ -1062,83 +1062,41 @@ var PACMAN = (function () {
         
         ghostPos = [];
 
-        // On level 1, show only first ghost (index 0); on other levels, show all ghosts
-        if (level === 1) {
-            // Only first ghost on level 1
-            ghostPos.push(ghosts[0].move(ctx));
-        } else {
-            // All ghosts on other levels
-            for (i = 0, len = ghosts.length; i < len; i += 1) {
-                ghostPos.push(ghosts[i].move(ctx));
-            }
+        for (i = 0, len = ghosts.length; i < len; i += 1) {
+            ghostPos.push(ghosts[i].move(ctx));
         }
         u = user.move(ctx);
         
-        if (level === 1) {
-            // Only first ghost on level 1
-            redrawBlock(ghostPos[0].old);
-        } else {
-            // All ghosts on other levels
-            for (i = 0, len = ghosts.length; i < len; i += 1) {
-                redrawBlock(ghostPos[i].old);
-            }
+        for (i = 0, len = ghosts.length; i < len; i += 1) {
+            redrawBlock(ghostPos[i].old);
         }
         redrawBlock(u.old);
         
-        if (level === 1) {
-            // Only first ghost on level 1
-            ghosts[0].draw(ctx);
-        } else {
-            // All ghosts on other levels
-            for (i = 0, len = ghosts.length; i < len; i += 1) {
-                ghosts[i].draw(ctx);
-            }
+        for (i = 0, len = ghosts.length; i < len; i += 1) {
+            ghosts[i].draw(ctx);
         }                     
         user.draw(ctx);
         
         userPos = u["new"];
         
-        // Ghost collision detection
-        if (level === 1) {
-            // Only first ghost collision on level 1
-            if (collided(userPos, ghostPos[0]["new"])) {
-                if (ghosts[0].isVunerable()) { 
+        for (i = 0, len = ghosts.length; i < len; i += 1) {
+            if (collided(userPos, ghostPos[i]["new"])) {
+                if (ghosts[i].isVunerable()) { 
                     audio.play("eatghost");
-                    ghosts[0].eat();
+                    ghosts[i].eat();
                     eatenCount += 1;
-                    totalGhostsEaten += 1;
+                    totalGhostsEaten += 1; // Track total ghosts eaten across all pills
                     nScore = eatenCount * 50;
-                    drawScore(nScore, ghostPos[0]);
+                    drawScore(nScore, ghostPos[i]);
                     user.addScore(nScore);                    
                     setState(EATEN_PAUSE);
                     timerStart = tick;
-                } else if (ghosts[0].isDangerous()) {
+                
+                    // Mid-roll interstitial removed
+                } else if (ghosts[i].isDangerous()) {
                     audio.play("die");
                     setState(DYING);
                     timerStart = tick;
-                }
-            }
-        } else {
-            // All ghosts collision on other levels
-            for (i = 0, len = ghosts.length; i < len; i += 1) {
-                if (collided(userPos, ghostPos[i]["new"])) {
-                    if (ghosts[i].isVunerable()) { 
-                        audio.play("eatghost");
-                        ghosts[i].eat();
-                        eatenCount += 1;
-                        totalGhostsEaten += 1; // Track total ghosts eaten across all pills
-                        nScore = eatenCount * 50;
-                        drawScore(nScore, ghostPos[i]);
-                        user.addScore(nScore);                    
-                        setState(EATEN_PAUSE);
-                        timerStart = tick;
-                    
-                        // Mid-roll interstitial removed
-                    } else if (ghosts[i].isDangerous()) {
-                        audio.play("die");
-                        setState(DYING);
-                        timerStart = tick;
-                    }
                 }
             }
         }                             

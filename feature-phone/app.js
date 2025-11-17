@@ -856,7 +856,13 @@ var PACMAN = (function () {
         user         = null,
         stored       = null,
         FOOTER_MIN_HEIGHT = 35,
-        FOOTER_MAX_HEIGHT = 60;
+        FOOTER_MAX_HEIGHT = 60,
+        rewardedDialogEl = null,
+        rewardedDialogButtons = [],
+        rewardedSelectedIndex = 1,
+        rewardedDialogKeyHandler = null;
+
+    window.rewardedDialogActive = window.rewardedDialogActive || false;
 
     function calculateFooterHeight(blockSize) {
         if (!blockSize) {
@@ -926,6 +932,10 @@ var PACMAN = (function () {
         var keyCode = e.keyCode || e.which;
         // Handle 5 key (regular 5, numpad 5, or KEY['5'])
         var is5Key = (keyCode === KEY['5'] || keyCode === 53 || keyCode === 101);
+
+        if (window.rewardedDialogActive) {
+            return true;
+        }
         
         // Handle Back button (ESC key = 27, or Back button on JioPhone)
         if (keyCode === KEY.ESCAPE || keyCode === 27 || e.key === 'Backspace' || e.key === 'Escape') {
@@ -1012,26 +1022,145 @@ var PACMAN = (function () {
         // Check if rewarded ad is available
         if (typeof isRVReady !== 'undefined' && isRVReady) {
             console.log("Pacman: Rewarded ad available - showing confirm dialog");
-            showRewardedAdConfirm();
+            showRewardedVideoConfirmation();
         } else {
             console.log("Pacman: No rewarded ad available - posting score and showing interstitial");
             postScoreAndShowAd();
         }
     }
     
-    function showRewardedAdConfirm() {
-        // Show confirmation dialog for rewarded ad
-        var accept = confirm("Watch an ad to get an extra life and continue playing?");
-        
-        if (accept) {
-            console.log("Pacman: User accepted rewarded ad");
+    function ensureRewardedDialogElements() {
+        if (rewardedDialogEl) {
+            return true;
+        }
+        rewardedDialogEl = document.getElementById('rewarded-dialog');
+        if (!rewardedDialogEl) {
+            return false;
+        }
+        rewardedDialogButtons = Array.prototype.slice.call(rewardedDialogEl.querySelectorAll('.rewarded-btn'));
+        rewardedDialogButtons.forEach(function(btn, idx) {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                e.stopPropagation();
+                updateRewardedDialogSelection(idx);
+                handleRewardedDialogSelection(btn.getAttribute('data-action'));
+            });
+        });
+        return true;
+    }
+
+    function updateRewardedDialogSelection(index) {
+        if (!rewardedDialogButtons.length) {
+            rewardedSelectedIndex = index;
+            return;
+        }
+        rewardedSelectedIndex = Math.max(0, Math.min(rewardedDialogButtons.length - 1, index));
+        rewardedDialogButtons.forEach(function(btn, idx) {
+            var selected = idx === rewardedSelectedIndex;
+            btn.classList.toggle('selected', selected);
+            btn.setAttribute('aria-pressed', selected ? 'true' : 'false');
+        });
+    }
+
+    function handleRewardedDialogSelection(action) {
+        closeRewardedVideoDialog();
+        if (action === 'watch') {
+            console.log("Pacman: Rewarded dialog - user chose Watch Ad");
             if (typeof showAdRewarded === 'function') {
                 showAdRewarded();
+            } else {
+                postScoreAndShowAd();
             }
         } else {
-            console.log("Pacman: User rejected rewarded ad");
+            console.log("Pacman: Rewarded dialog - user chose Skip");
             postScoreAndShowAd();
         }
+    }
+
+    function closeRewardedVideoDialog() {
+        if (rewardedDialogEl) {
+            rewardedDialogEl.classList.remove('visible');
+            rewardedDialogEl.setAttribute('aria-hidden', 'true');
+        }
+        window.rewardedDialogActive = false;
+        if (rewardedDialogKeyHandler) {
+            document.removeEventListener('keydown', rewardedDialogKeyHandler, true);
+            rewardedDialogKeyHandler = null;
+        }
+    }
+
+    function handleRewardedDialogKey(e) {
+        if (!window.rewardedDialogActive) {
+            return;
+        }
+        var keyCode = e.keyCode || e.which;
+        var key = e.key;
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof e.stopImmediatePropagation === 'function') {
+            e.stopImmediatePropagation();
+        }
+
+        var isUp = keyCode === KEY.ARROW_UP || key === 'ArrowUp' || keyCode === KEY['8'] || keyCode === 56 || key === '8';
+        var isDown = keyCode === KEY.ARROW_DOWN || key === 'ArrowDown' || keyCode === KEY['2'] || keyCode === 50 || key === '2';
+        var isLeft = keyCode === KEY.ARROW_LEFT || key === 'ArrowLeft' || keyCode === KEY['4'] || keyCode === 52 || key === '4';
+        var isRight = keyCode === KEY.ARROW_RIGHT || key === 'ArrowRight' || keyCode === KEY['6'] || keyCode === 54 || key === '6';
+        var isConfirm = keyCode === KEY.ENTER || keyCode === 13 || keyCode === KEY['5'] || keyCode === 53 || keyCode === 101 || key === 'Enter' || key === '5';
+        var isBack = keyCode === KEY.ESCAPE || keyCode === 27 || keyCode === 18 ||
+                     key === 'Backspace' || key === 'Escape' || key === 'SoftRight';
+
+        if (isBack) {
+            handleRewardedDialogSelection('skip');
+            return false;
+        }
+
+        if (isUp || isLeft) {
+            updateRewardedDialogSelection(0);
+            return false;
+        }
+
+        if (isDown || isRight) {
+            updateRewardedDialogSelection(1);
+            return false;
+        }
+
+        if (isConfirm) {
+            var action = rewardedDialogButtons[rewardedSelectedIndex] ?
+                rewardedDialogButtons[rewardedSelectedIndex].getAttribute('data-action') : 'watch';
+            handleRewardedDialogSelection(action);
+            return false;
+        }
+    }
+
+    function legacyRewardedConfirm() {
+        var accept = confirm("Watch a rewarded video ad to get +1 Nitro and continue playing?");
+        if (accept) {
+            console.log("Pacman: User accepted rewarded ad (legacy)");
+            if (typeof showAdRewarded === 'function') {
+                showAdRewarded();
+            } else {
+                postScoreAndShowAd();
+            }
+        } else {
+            console.log("Pacman: User rejected rewarded ad (legacy)");
+            postScoreAndShowAd();
+        }
+    }
+
+    function showRewardedVideoConfirmation() {
+        if (!ensureRewardedDialogElements()) {
+            legacyRewardedConfirm();
+            return;
+        }
+
+        console.log("Pacman: Displaying rewarded dialog overlay");
+        window.rewardedDialogActive = true;
+        rewardedDialogEl.classList.add('visible');
+        rewardedDialogEl.setAttribute('aria-hidden', 'false');
+        updateRewardedDialogSelection(1); // Watch Ad default
+
+        rewardedDialogKeyHandler = handleRewardedDialogKey;
+        document.addEventListener('keydown', rewardedDialogKeyHandler, true);
     }
     
     function postScoreAndShowAd() {
@@ -1285,6 +1414,11 @@ var PACMAN = (function () {
     };
 
     function keyPress(e) { 
+        if (window.rewardedDialogActive) {
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+        }
         if (state !== WAITING && state !== PAUSE) { 
             e.preventDefault();
             e.stopPropagation();
