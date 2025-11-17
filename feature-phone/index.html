@@ -78,6 +78,23 @@
       <div id="pacman" aria-label="Pacman Game"></div>
     </div>
 
+    <!-- Rewarded Video Confirmation Dialog -->
+    <div id="rewarded-dialog" class="rewarded-dialog" role="dialog" aria-hidden="true" aria-modal="true" aria-labelledby="rewarded-dialog-title">
+      <div class="rewarded-dialog-content">
+        <h2 id="rewarded-dialog-title">Watch Ad for Extra Life?</h2>
+        <p class="rewarded-dialog-text">Watch a rewarded video ad to get +1 Nitro and continue playing.</p>
+        <div class="rewarded-buttons" role="group" aria-label="Rewarded Ad Choices">
+          <button class="rewarded-btn skip-btn" data-action="skip" aria-pressed="false">⬆️ Skip</button>
+          <button class="rewarded-btn watch-btn selected" data-action="watch" aria-pressed="true">⬇️ Watch Ad</button>
+        </div>
+        <div class="rewarded-hints">
+          <span>Use 8/2 or arrows to move</span>
+          <span>4/6 to switch • 5/Enter to confirm</span>
+          <span>Back key = Skip</span>
+        </div>
+      </div>
+    </div>
+
     <!-- JioGames SDK (Load First) -->
     <script src="./jiogames_jp.js" type="text/javascript"></script>
     <script>
@@ -111,7 +128,8 @@
         var homeScreen = document.getElementById('home-screen');
         var gameWrapper = document.getElementById('game-wrapper');
         var startButton = document.getElementById('start-btn');
-        window.gameStarted = false;
+        window.gameStarted = window.gameStarted || false;
+        window.pacmanInitialized = window.pacmanInitialized || false;
         
         function startGame() {
           if (window.gameStarted) return;
@@ -124,8 +142,21 @@
           setTimeout(function() {
             var el = document.getElementById("pacman");
             if (Modernizr.canvas && Modernizr.localstorage) {
-              console.log("Starting PACMAN.init() from home screen...");
-              PACMAN.init(el, "./audio/");
+              if (!window.pacmanInitialized) {
+                console.log("Starting PACMAN.init() from home screen...");
+                if (el) {
+                  el.innerHTML = "";
+                }
+                PACMAN.init(el, "./audio/");
+                window.pacmanInitialized = true;
+              } else {
+                console.log("PACMAN already initialized - reusing existing canvas");
+                if (el && el.children.length > 1) {
+                  while (el.children.length > 1) {
+                    el.removeChild(el.lastChild);
+                  }
+                }
+              }
               
               // Wait for game to be ready, then start it directly
               setTimeout(function() {
@@ -224,6 +255,10 @@
         function handleKeyPress(e) {
           var keyCode = e.keyCode || e.which;
           var key = e.key;
+          
+          if (window.rewardedDialogActive) {
+            return;
+          }
           
           console.log("Key pressed - Code:", keyCode, "Key:", key);
 
