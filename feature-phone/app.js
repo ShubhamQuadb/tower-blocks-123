@@ -854,7 +854,17 @@ var PACMAN = (function () {
         timer        = null,
         map          = null,
         user         = null,
-        stored       = null;
+        stored       = null,
+        FOOTER_MIN_HEIGHT = 35,
+        FOOTER_MAX_HEIGHT = 60;
+
+    function calculateFooterHeight(blockSize) {
+        if (!blockSize) {
+            return FOOTER_MIN_HEIGHT;
+        }
+        var scaled = Math.round(blockSize * 1.4);
+        return Math.max(FOOTER_MIN_HEIGHT, Math.min(FOOTER_MAX_HEIGHT, scaled));
+    }
 
     function getTick() { 
         return tick;
@@ -908,7 +918,52 @@ var PACMAN = (function () {
         startLevel();
     }
 
+    // Back button handling - track last press time for double press detection
+    var lastBackPress = 0;
+    var BACK_DOUBLE_PRESS_TIME = 500; // 500ms window for double press
+    
     function keyDown(e) {
+        var keyCode = e.keyCode || e.which;
+        // Handle 5 key (regular 5, numpad 5, or KEY['5'])
+        var is5Key = (keyCode === KEY['5'] || keyCode === 53 || keyCode === 101);
+        
+        // Handle Back button (ESC key = 27, or Back button on JioPhone)
+        if (keyCode === KEY.ESCAPE || keyCode === 27 || e.key === 'Backspace' || e.key === 'Escape') {
+            var currentTime = Date.now();
+            var timeSinceLastPress = currentTime - lastBackPress;
+            
+            if (timeSinceLastPress < BACK_DOUBLE_PRESS_TIME && lastBackPress > 0) {
+                // Double press - exit game
+                console.log("Back button double press - exiting game");
+                e.preventDefault();
+                e.stopPropagation();
+                exitGame();
+                return false;
+            } else {
+                // Single press - go to home screen
+                console.log("Back button single press - going to home screen");
+                e.preventDefault();
+                e.stopPropagation();
+                lastBackPress = currentTime;
+                goToHomeScreen();
+                return false;
+            }
+        }
+        
+        // Reset back press timer if other key is pressed
+        if (keyCode !== KEY.ESCAPE && keyCode !== 27) {
+            lastBackPress = 0;
+        }
+        
+        // Handle SoftRight key - go to home screen
+        if (e.key === 'SoftRight' || e.keyCode === 18 || (e.key && e.key.toLowerCase() === 'softright')) {
+            console.log("SoftRight key pressed - going to home screen");
+            e.preventDefault();
+            e.stopPropagation();
+            goToHomeScreen();
+            return false;
+        }
+        
         if (e.keyCode === KEY.N) {
             startNewGame();
         } else if (e.keyCode === KEY.S) {
@@ -918,13 +973,13 @@ var PACMAN = (function () {
             if (soundDisabled()) {
                 audio.disableSound();
             }
-        } else if ((e.keyCode === KEY.P || e.keyCode === KEY.ENTER || e.keyCode === KEY['5']) && state === PAUSE) {
+        } else if ((e.keyCode === KEY.P || e.keyCode === KEY.ENTER || is5Key) && state === PAUSE) {
             // Resume on OK/5 or P button
             audio.resume();
             map.draw(ctx);
             setState(stored);
-        } else if (e.keyCode === KEY.P || e.keyCode === KEY.ENTER || e.keyCode === KEY['5']) {
-            // Pause on OK/5 or P button (but only if game is playing, not waiting)
+        } else if (e.keyCode === KEY.P || e.keyCode === KEY.ENTER || is5Key) {
+            // Pause/Resume on OK/5 or P button
             if (state === PLAYING || state === COUNTDOWN) {
                 stored = state;
                 setState(PAUSE);
@@ -1035,40 +1090,64 @@ var PACMAN = (function () {
     function drawFooter() {
         
         var topLeft  = (map.height * map.blockSize),
-            textBase = topLeft + 17;
+            footerHeight = calculateFooterHeight(map.blockSize),
+            textBase = topLeft + footerHeight - Math.max(8, Math.round(footerHeight * 0.35)),
+            canvasWidth = (map.width * map.blockSize);
         
         ctx.fillStyle = "#000000";
-        ctx.fillRect(0, topLeft, (map.width * map.blockSize), 30);
-        
+        ctx.fillRect(0, topLeft, canvasWidth, footerHeight);
         ctx.fillStyle = "#FFFF00";
 
-        // Lives icons on the right side with proper spacing
-        var livesStartX = (map.width * map.blockSize) - (user.getLives() * 20) - 5;
+        var livesStartX = canvasWidth - (user.getLives() * 20) - 5;
+        var livesCenterY = topLeft + (footerHeight / 2);
+        var lifeRadius = Math.max(4, Math.min(map.blockSize / 2, (footerHeight / 2) - 3));
+
         for (var i = 0, len = user.getLives(); i < len; i++) {
-            ctx.fillStyle = "#FFFF00";
             ctx.beginPath();
-            ctx.moveTo(livesStartX + (20 * i) + map.blockSize / 2,
-                       (topLeft+1) + map.blockSize / 2);
-            
-            ctx.arc(livesStartX + (20 * i) + map.blockSize / 2,
-                    (topLeft+1) + map.blockSize / 2,
-                    map.blockSize / 2, Math.PI * 0.25, Math.PI * 1.75, false);
+            var lifeX = livesStartX + (20 * i) + map.blockSize / 2;
+            ctx.moveTo(lifeX, livesCenterY);
+            ctx.arc(lifeX,
+                    livesCenterY,
+                    lifeRadius, Math.PI * 0.25, Math.PI * 1.75, false);
             ctx.fill();
         }
 
-        ctx.fillStyle = !soundDisabled() ? "#00FF00" : "#FF0000";
-        ctx.font = "bold 16px sans-serif";
-        //ctx.fillText("♪", 10, textBase);
-        ctx.fillText("s", 10, textBase);
-
-        ctx.fillStyle = "#FFFF00";
-        ctx.font      = "14px Calibri";
-        ctx.fillText("Score: " + user.theScore(), 10, textBase);
+        var scoreFontSize = Math.max(16, Math.min(24, Math.round(map.blockSize * 1.3)));
+        ctx.font = "bold " + scoreFontSize + "px Calibri";
+        var score = user.theScore();
+        var scoreText = "S:" + score;
+        var scoreWidth = ctx.measureText(scoreText).width;
         
-        // Center the level text
-        var levelText = "Level: " + level;
+        var maxScoreWidth = (canvasWidth / 2) - (scoreFontSize * 2); 
+        if (scoreWidth > maxScoreWidth) {
+            if (score >= 1000000) {
+                scoreText = "S:" + Math.floor(score / 1000000) + "M";
+            } else if (score >= 1000) {
+                scoreText = "S:" + Math.floor(score / 1000) + "K";
+            } else {
+                var truncatedScore = score;
+                while (ctx.measureText("S:" + truncatedScore).width > maxScoreWidth && truncatedScore > 0) {
+                    truncatedScore = Math.floor(truncatedScore / 10);
+                }
+                scoreText = "S:" + truncatedScore + (truncatedScore !== score ? "+" : "");
+            }
+            scoreWidth = ctx.measureText(scoreText).width;
+        }
+        ctx.fillText(scoreText, 5, textBase);
+        
+        var levelFontSize = Math.max(16, Math.min(24, Math.round(map.blockSize * 1.3)));
+        ctx.font = "bold " + levelFontSize + "px Calibri";
+        var levelText = "L" + level;
         var levelWidth = ctx.measureText(levelText).width;
-        ctx.fillText(levelText, ((map.width * map.blockSize) - levelWidth) / 2, textBase);
+        var levelX = livesStartX - levelWidth - 15;
+        var minGap = Math.max(10, Math.round(levelFontSize * 0.6));
+        if (levelX < (20 + scoreWidth + minGap)) {
+            levelX = (20 + scoreWidth + minGap);
+            if (levelX + levelWidth > livesStartX - 5) {
+                levelX = (canvasWidth / 2) + 10;
+            }
+        }
+        ctx.fillText(levelText, levelX, textBase);
     }
 
     function redrawBlock(pos) {
@@ -1217,21 +1296,39 @@ var PACMAN = (function () {
         
         var i, len, ghost,
             screenWidth = window.innerWidth || 240,
-            screenHeight = window.innerHeight || 320,
-            maxCanvasHeight = screenHeight - 90, // Reserve space for header/footer
-            blockSize = Math.min(wrapper.offsetWidth / 19, maxCanvasHeight / 22),
-            canvas = document.createElement("canvas");
+            screenHeight = window.innerHeight || 320;
+        
+        // For smaller screens (220x340), reduce reserved space
+        var reservedSpace = (screenHeight <= 340) ? 50 : 90;
+        var maxCanvasHeight = screenHeight - reservedSpace;
+        
+        // Calculate block size based on available space
+        var blockSize = Math.min(wrapper.offsetWidth / 19, maxCanvasHeight / 22);
+        
+        // Ensure minimum block size for playability
+        if (blockSize < 8) {
+            blockSize = 8;
+        }
+        
+        var canvas = document.createElement("canvas");
         
         console.log("Screen:", screenWidth, "x", screenHeight);
+        console.log("Reserved space:", reservedSpace);
+        console.log("Max canvas height:", maxCanvasHeight);
+        var footerHeight = calculateFooterHeight(blockSize);
         console.log("Block size:", blockSize);
         console.log("Canvas width:", blockSize * 19);
-        console.log("Canvas height:", (blockSize * 22) + 30);
+        console.log("Canvas height:", (blockSize * 22) + footerHeight);
         
-        canvas.setAttribute("width", Math.floor(blockSize * 19) + "px");
-        canvas.setAttribute("height", Math.floor((blockSize * 22) + 30) + "px");
+        // Set actual pixel dimensions
+        var canvasWidth = Math.floor(blockSize * 19);
+        var canvasHeight = Math.floor((blockSize * 22) + footerHeight);
         
-        // Add max-height for JioPhone
-        canvas.style.maxHeight = maxCanvasHeight + "px";
+        canvas.width = canvasWidth;
+        canvas.height = canvasHeight;
+        
+        // Add max-height for JioPhone/Feature phones
+        canvas.style.maxHeight = (maxCanvasHeight + footerHeight) + "px";
         canvas.style.width = "100%";
         canvas.style.height = "auto";
 
@@ -1314,9 +1411,52 @@ var PACMAN = (function () {
         console.log("JioGames: Game loop started at", Pacman.FPS, "FPS");
     };
     
+    function goToHomeScreen() {
+        console.log("Going to home screen");
+        // Pause game if playing
+        if (state === PLAYING || state === COUNTDOWN) {
+            stored = state;
+            setState(PAUSE);
+            audio.pause();
+        }
+        
+        // Hide game wrapper and show home screen
+        var gameWrapper = document.getElementById('game-wrapper');
+        var homeScreen = document.getElementById('home-screen');
+        
+        if (gameWrapper) {
+            gameWrapper.style.display = 'none';
+        }
+        if (homeScreen) {
+            homeScreen.style.display = 'flex';
+            // Reset game started flag so user can start again
+            if (typeof window.gameStarted !== 'undefined') {
+                window.gameStarted = false;
+            }
+        }
+    }
+    
+    function exitGame() {
+        console.log("Exiting game");
+        // Close the app/window
+        if (typeof window.close === 'function') {
+            try {
+                window.close();
+            } catch (e) {
+                console.log("Cannot close window, trying history.back()");
+                window.history.back();
+            }
+        } else {
+            // Fallback: navigate away
+            window.history.back();
+        }
+    }
+    
     return {
         "init" : init,
         "startNewGame" : startNewGame,
+        "goToHomeScreen" : goToHomeScreen,
+        "exitGame" : exitGame,
         "gratifyUser" : gratifyUser,
         "rvSkipped" : rvSkipped
     };

@@ -111,11 +111,11 @@
         var homeScreen = document.getElementById('home-screen');
         var gameWrapper = document.getElementById('game-wrapper');
         var startButton = document.getElementById('start-btn');
-        var gameStarted = false;
+        window.gameStarted = false;
         
         function startGame() {
-          if (gameStarted) return;
-          gameStarted = true;
+          if (window.gameStarted) return;
+          window.gameStarted = true;
           console.log("=== Home Screen: Starting Game ===");
           homeScreen.style.display = 'none';
           gameWrapper.style.display = 'flex';
@@ -143,11 +143,25 @@
           startButton.addEventListener('click', startGame);
         }
         
-        // Handle 5 key press on home screen
+        // Handle key press on home screen
         function handleHomeKeyPress(e) {
           // Only handle if home screen is visible
           if (homeScreen && homeScreen.style.display !== 'none') {
             var keyCode = e.keyCode || e.which;
+            
+            // Back button (ESC = 27) - exit on home screen
+            if (keyCode === 27 || e.key === 'Backspace' || e.key === 'Escape') {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log("Back button on home screen - exiting");
+              if (typeof PACMAN !== 'undefined' && PACMAN.exitGame) {
+                PACMAN.exitGame();
+              } else {
+                window.history.back();
+              }
+              return false;
+            }
+            
             // 5 key (numeric keypad or regular), Enter key, or OK button
             // Key codes: 53 = '5', 101 = numpad '5', 13 = Enter
             if (keyCode === 53 || keyCode === 101 || keyCode === 13) {
@@ -200,6 +214,7 @@
           'ArrowRight': 39,
           'Enter': 78,  // Center softkey = Start
           'SoftLeft': 83, // Left softkey = Sound
+          'SoftRight': 27, // Right softkey = Home screen (ESC code)
           '*': 83
         };
 
@@ -211,6 +226,24 @@
           var key = e.key;
           
           console.log("Key pressed - Code:", keyCode, "Key:", key);
+
+          // Handle SoftRight key - go to home screen directly
+          if (key === 'SoftRight' || (key && key.toLowerCase() === 'softright')) {
+            console.log("SoftRight key detected - going to home screen");
+            e.preventDefault();
+            e.stopPropagation();
+            // Check if game is running and call goToHomeScreen
+            if (typeof PACMAN !== 'undefined' && PACMAN.goToHomeScreen) {
+              PACMAN.goToHomeScreen();
+            } else {
+              // Fallback: hide game wrapper and show home screen
+              var gameWrapper = document.getElementById('game-wrapper');
+              var homeScreen = document.getElementById('home-screen');
+              if (gameWrapper) gameWrapper.style.display = 'none';
+              if (homeScreen) homeScreen.style.display = 'flex';
+            }
+            return false;
+          }
 
           // Handle numeric keypad
           if (keyMapping[keyCode]) {

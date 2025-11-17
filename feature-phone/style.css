@@ -141,7 +141,10 @@ body {
   font-size: 10px;
   display: flex;
   flex-direction: column;
-  height: 320px; /* Fixed JioPhone height */
+  height: 100vh;
+  max-height: 340px; /* Max for feature phones */
+  min-height: 220px;
+  overflow: hidden;
 }
 
 h1 {
@@ -317,11 +320,13 @@ h1 {
 .game-wrapper {
   display: flex;
   justify-content: center;
+  align-items: center;
   width: 100%;
   margin: 0;
   flex: 1; /* Take available space */
   min-height: 0; /* Allow shrinking */
   overflow: hidden;
+  max-height: 100%;
 }
 
 /* Optimized canvas size for 240x320 JioPhone */
@@ -329,16 +334,18 @@ h1 {
   width: 100% !important;
   max-width: 228px !important;
   height: auto !important;
-  max-height: 250px !important; /* Limit height to fit screen */
+  max-height: 100% !important;
   border: none;
   display: block;
+  margin: 0 auto;
 }
 
 #pacman canvas {
   width: 100% !important;
   height: auto !important;
-  max-height: 250px !important;
+  max-height: 100% !important;
   display: block;
+  margin: 0 auto;
 }
 
 /* Key Guide for Feature Phones - Compact for 240x320 */
@@ -397,7 +404,9 @@ h1 {
   body {
     padding: var(--pad);
     font-size: 9px;
-    height: 320px; /* JioPhone exact height */
+    height: 100vh;
+    max-height: 340px;
+    min-height: 220px;
   }
   
   h1 {
@@ -449,12 +458,12 @@ h1 {
   
   #pacman {
     max-width: 236px !important;
-    max-height: 240px !important;
+    max-height: 100% !important;
   }
   
   #pacman canvas {
     max-width: 236px !important;
-    max-height: 240px !important;
+    max-height: 100% !important;
   }
   
   .key-guide {
@@ -476,17 +485,18 @@ h1 {
 /* Exact JioPhone dimensions */
 @media (width: 240px) and (height: 320px) {
   body {
-    height: 320px;
-    max-height: 320px;
+    height: 100vh;
+    max-height: 340px;
+    min-height: 220px;
     overflow: hidden;
   }
   
   #pacman {
-    max-height: 230px !important;
+    max-height: 100% !important;
   }
   
   #pacman canvas {
-    max-height: 230px !important;
+    max-height: 100% !important;
   }
 }
 
