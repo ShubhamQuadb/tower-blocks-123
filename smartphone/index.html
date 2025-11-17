@@ -103,6 +103,26 @@
         </ul>
       </div>
     </div>
+    <!-- Rewarded Video Prompt -->
+    <div id="rewardModal" class="reward-modal" aria-hidden="true" role="dialog" aria-labelledby="rewardTitle">
+      <div class="reward-modal__card">
+        <div class="reward-modal__header">
+          <div class="reward-modal__icon">🎁</div>
+          <div>
+            <div id="rewardTitle" class="reward-modal__title">Continue Playing?</div>
+            <div id="rewardSubtitle" class="reward-modal__subtitle">Watch a short video to get an extra life.</div>
+          </div>
+        </div>
+        <div class="reward-modal__body">
+          <p id="rewardMessage">Watch a rewarded video and jump back into the action with one extra life.</p>
+          <div class="reward-modal__score" id="rewardScore"></div>
+        </div>
+        <div class="reward-modal__actions">
+          <button id="btnRewardWatch" class="reward-modal__btn reward-modal__btn--primary">▶ Watch &amp; Continue</button>
+          <button id="btnRewardSkip" class="reward-modal__btn reward-modal__btn--ghost">Skip for now</button>
+        </div>
+      </div>
+    </div>
     <div id="shim">shim for font face</div>
     <h1>🎮 Pacman - Android</h1>
     <p id="instructions">
@@ -310,6 +330,76 @@
           var btnHelp=document.getElementById('btnHelp');
           var help=document.getElementById('helpModal');
           var btnClose=document.getElementById('btnCloseHelp');
+          var rewardModal=document.getElementById('rewardModal');
+          var rewardMessage=document.getElementById('rewardMessage');
+          var rewardScore=document.getElementById('rewardScore');
+          var btnRewardWatch=document.getElementById('btnRewardWatch');
+          var btnRewardSkip=document.getElementById('btnRewardSkip');
+          var rewardCallbacks=null;
+          
+          function closeRewardPrompt(action){
+            if (rewardModal) {
+              rewardModal.classList.remove('visible');
+              rewardModal.setAttribute('aria-hidden','true');
+            }
+            var callbacks = rewardCallbacks;
+            rewardCallbacks = null;
+            if (!callbacks) { return; }
+            if (action === 'confirm' && typeof callbacks.onConfirm === 'function') {
+              callbacks.onConfirm();
+            } else if (action === 'cancel' && typeof callbacks.onCancel === 'function') {
+              callbacks.onCancel();
+            }
+          }
+          
+          window.showRewardPrompt = function(options){
+            options = options || {};
+            if (!rewardModal) {
+              if (typeof options.onCancel === 'function') {
+                options.onCancel();
+              }
+              return;
+            }
+            rewardCallbacks = options;
+            if (rewardMessage) {
+              rewardMessage.textContent = options.message || 'Watch a rewarded video and jump back into the action with one extra life.';
+            }
+            if (rewardScore) {
+              if (typeof options.score !== 'undefined') {
+                rewardScore.style.display = 'block';
+                rewardScore.textContent = 'Score: ' + options.score;
+              } else {
+                rewardScore.style.display = 'none';
+                rewardScore.textContent = '';
+              }
+            }
+            rewardModal.classList.add('visible');
+            rewardModal.setAttribute('aria-hidden','false');
+          };
+          
+          if (btnRewardWatch) {
+            btnRewardWatch.addEventListener('click', function(){
+              closeRewardPrompt('confirm');
+            });
+          }
+          if (btnRewardSkip) {
+            btnRewardSkip.addEventListener('click', function(){
+              closeRewardPrompt('cancel');
+            });
+          }
+          if (rewardModal) {
+            rewardModal.addEventListener('click', function(e){
+              if (e.target === rewardModal) {
+                closeRewardPrompt('cancel');
+              }
+            });
+          }
+          document.addEventListener('keydown', function(evt){
+            if (evt.key === 'Escape' && rewardModal && rewardModal.classList.contains('visible')) {
+              evt.preventDefault();
+              closeRewardPrompt('cancel');
+            }
+          });
           function fireKey(code){
             try{
               console.log('Pacman: fireKey called with code:', code);

@@ -933,31 +933,38 @@ var PACMAN = (function () {
             dialog("Game Over! Score: " + finalScore + ". Press START");
             drawFooter();
 
+            var handleStandardGameOver = function() {
+                postScore(finalScore);
+                setTimeout(function(){ 
+                    // Redraw after ad delay to ensure canvas is visible
+                    map.draw(ctx);
+                    dialog("Game Over! Score: " + finalScore + ". Press START");
+                    drawFooter();
+                    showAd(); 
+                }, 500);
+            };
+
             try {
                 // Direct calls like Space Battle (no typeof checks)
                 if (window.isRVReady === true) {
-                    var wants = window.confirm('Continue with an extra life by watching a video?');
-                    if (wants) {
-                        showAdRewarded();
+                    if (typeof window.showRewardPrompt === 'function') {
+                        window.showRewardPrompt({
+                            score: finalScore,
+                            onConfirm: function() {
+                                showAdRewarded();
+                            },
+                            onCancel: handleStandardGameOver
+                        });
                     } else {
-                        postScore(finalScore);
-                        setTimeout(function(){ 
-                            // Redraw after ad delay to ensure canvas is visible
-                            map.draw(ctx);
-                            dialog("Game Over! Score: " + finalScore + ". Press START");
-                            drawFooter();
-                            showAd(); 
-                        }, 500);
+                        var wants = window.confirm('Continue with an extra life by watching a video?');
+                        if (wants) {
+                            showAdRewarded();
+                        } else {
+                            handleStandardGameOver();
+                        }
                     }
                 } else {
-                    postScore(finalScore);
-                    setTimeout(function(){ 
-                        // Redraw after ad delay to ensure canvas is visible
-                        map.draw(ctx);
-                        dialog("Game Over! Score: " + finalScore + ". Press START");
-                        drawFooter();
-                        showAd(); 
-                    }, 500);
+                    handleStandardGameOver();
                 }
             } catch(e) { console.log(e); }
         }
