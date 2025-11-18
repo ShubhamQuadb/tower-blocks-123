@@ -81,6 +81,7 @@
       <div style="position:relative;z-index:2;width:92%;max-width:520px;border-radius:14px;background:rgba(6,12,20,.78);backdrop-filter:blur(6px);padding:16px;border:1px solid rgba(0,204,255,.25);box-shadow:0 12px 40px rgba(0,0,0,.35);text-align:center;color:#eafffb;">
         <div style="font-family:'Permanent Marker', cursive;font-size:26px;letter-spacing:1px;color:#35f7c6;margin-bottom:6px;">Pacman</div>
         <div style="font-size:12px;color:#bfe8ff;opacity:.95;margin-bottom:14px;">Modern Smartphone Edition</div>
+        <button class="pill-btn sound-btn" data-key="83" aria-label="Toggle Sound (S)">🔊 Sound</button>
         <button id="btnStartGame" style="width:100%;padding:12px 10px;margin:6px 0;background:linear-gradient(90deg,#00ffaa,#00ccff);border:none;border-radius:10px;color:#001;font-weight:700;letter-spacing:.5px;box-shadow:0 6px 16px rgba(0,204,255,.35);">START GAME</button>
         <button id="btnHelp" style="width:100%;padding:10px;margin:6px 0;background:rgba(13,34,48,.9);border:1px solid rgba(0,170,255,.45);border-radius:10px;color:#bfe8ff;">HELP</button>
       </div>
@@ -137,10 +138,9 @@
 
     <!-- Mobile Controls -->
     <div class="controls" aria-label="Mobile Controls">
-      <!-- Top row: Sound and Start/Pause/Resume button -->
+      <!-- Top row: Start/Pause/Resume button -->
       <div class="controls-row controls-top">
-        <button class="pill-btn sound-btn" data-key="83" aria-label="Toggle Sound (S)">🔊 Sound</button>
-        <button class="pill-btn btn-start-pause" data-key="78" aria-label="Start/Pause/Resume">▶ Start</button>
+        <button class="pill-btn btn-start-pause" data-key="78" aria-label="Start/Pause/Resume" style="width:100%;">▶ Start</button>
       </div>
       <!-- Bottom row: Arrow buttons -->
       <div class="controls-row">
@@ -907,6 +907,29 @@
                 }
                 
                 console.log('Pacman: Close game button clicked - exitToMainMenu()');
+                
+                // Stop the game by dispatching stopGame event (this will reset game state to WAITING)
+                try {
+                  window.dispatchEvent(new CustomEvent('stopGame'));
+                  console.log('Pacman: stopGame event dispatched');
+                } catch(e) {
+                  console.log('Pacman: Error dispatching stopGame event:', e);
+                }
+                
+                // Stop/pause all audio when closing game
+                try {
+                  // Pause all audio elements on the page
+                  var allAudio = document.querySelectorAll('audio');
+                  for (var i = 0; i < allAudio.length; i++) {
+                    if (allAudio[i]) {
+                      allAudio[i].pause();
+                      allAudio[i].currentTime = 0; // Reset to beginning
+                    }
+                  }
+                  console.log('Pacman: All audio paused and reset when closing game');
+                } catch(e) {
+                  console.log('Pacman: Error stopping audio:', e);
+                }
                 
                 // Clear canvas visibility check interval
                 if (window.canvasVisibilityCheck) {
