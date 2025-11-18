@@ -147,9 +147,11 @@ body.game-playing .game-wrapper {
   visibility: hidden !important;
   opacity: 0 !important;
   pointer-events: none !important;
-  margin: 4px auto 2px;
+  margin: 20px auto 0;
+  margin-bottom: max(12px, env(safe-area-inset-bottom, 12px));
   max-width: 100%;
   padding: 0 4px;
+  padding-bottom: max(8px, env(safe-area-inset-bottom, 8px));
   user-select: none;
   -webkit-user-select: none;
   -webkit-tap-highlight-color: transparent;
@@ -198,9 +200,9 @@ body.game-playing .game-wrapper {
 
 /* Top row for Sound, Start/Pause buttons */
 .controls-top {
-  margin-bottom: 6px;
+  margin-bottom: 30px;
   gap: 6px;
-  justify-content: space-between;
+  justify-content: center;
   width: 100%;
 }
 
@@ -238,12 +240,11 @@ body.game-playing .game-wrapper {
 
 /* Sound and Start/Pause button in top row */
 .controls-top .pill-btn {
-  min-width: 70px;
+  min-width: 120px;
   min-height: 36px;
   font-size: 11px;
-  padding: 6px 10px;
-  flex: 1 1 auto;
-  max-width: 48%;
+  padding: 6px 20px;
+  flex: 0 0 auto;
 }
 
 /* Start/Pause/Resume button styling - changes based on state */
@@ -385,12 +386,11 @@ body.game-playing .game-wrapper {
   }
   
   .controls-top .pill-btn {
-    min-width: 60px;
+    min-width: 100px;
     min-height: 32px;
     font-size: 10px;
-    padding: 4px 6px;
-    flex: 1 1 auto;
-    max-width: 48%;
+    padding: 4px 12px;
+    flex: 0 0 auto;
   }
   
   .controls-row { 
@@ -455,12 +455,11 @@ body.game-playing .game-wrapper {
   }
   
   .controls-top .pill-btn {
-    min-width: 75px;
+    min-width: 110px;
     min-height: 38px;
     font-size: 10px;
-    padding: 5px 8px;
-    flex: 1 1 auto;
-    max-width: 48%;
+    padding: 5px 16px;
+    flex: 0 0 auto;
   }
   
   .controls-row { 
@@ -521,12 +520,11 @@ body.game-playing .game-wrapper {
   }
   
   .controls-top .pill-btn {
-    min-width: 90px;
+    min-width: 120px;
     min-height: 42px;
     font-size: 11px;
-    padding: 6px 10px;
-    flex: 1 1 auto;
-    max-width: 48%;
+    padding: 6px 18px;
+    flex: 0 0 auto;
   }
   
   .controls-row {
@@ -587,11 +585,11 @@ body.game-playing .game-wrapper {
   }
   
   .controls-top .pill-btn {
-    min-width: 120px;
+    min-width: 140px;
     min-height: 46px;
     font-size: 12px;
-    flex: 1;
-    max-width: 140px;
+    padding: 6px 20px;
+    flex: 0 0 auto;
   }
   
   .controls-row { 
