@@ -974,6 +974,7 @@
                 // 2. Reset game to ready state
                 // Hide game, show home screen
                 document.body.classList.remove('game-playing');
+                document.body.classList.remove('game-over'); // Remove game-over class if present
                 document.body.classList.add('home-visible');
                 
                 // Explicitly hide controls and all game UI elements
@@ -983,6 +984,9 @@
                   controls.style.visibility = 'hidden';
                   controls.style.opacity = '0';
                   controls.style.pointerEvents = 'none';
+                  // Force hide with !important via inline style
+                  controls.style.setProperty('display', 'none', 'important');
+                  controls.style.setProperty('visibility', 'hidden', 'important');
                 }
                 
                 // Hide close button only when returning to home screen
@@ -1071,11 +1075,12 @@
                 window.homeScreenControlCheck = setInterval(function() {
                   if (document.body.classList.contains('home-visible')) {
                     var controls = document.querySelector('.controls');
-                    if (controls && (controls.style.display !== 'none' || window.getComputedStyle(controls).display !== 'none')) {
-                      controls.style.display = 'none';
-                      controls.style.visibility = 'hidden';
-                      controls.style.opacity = '0';
-                      controls.style.pointerEvents = 'none';
+                    if (controls) {
+                      // Aggressively hide controls with !important
+                      controls.style.setProperty('display', 'none', 'important');
+                      controls.style.setProperty('visibility', 'hidden', 'important');
+                      controls.style.setProperty('opacity', '0', 'important');
+                      controls.style.setProperty('pointer-events', 'none', 'important');
                     }
                     
                     // Close button should only be hidden on home screen (handled by CSS)
