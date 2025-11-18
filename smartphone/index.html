@@ -79,7 +79,7 @@
       </div>
       <!-- Content card (above banner) -->
       <div style="position:relative;z-index:2;width:92%;max-width:520px;border-radius:14px;background:rgba(6,12,20,.78);backdrop-filter:blur(6px);padding:16px;border:1px solid rgba(0,204,255,.25);box-shadow:0 12px 40px rgba(0,0,0,.35);text-align:center;color:#eafffb;">
-        <div style="font-family:'Permanent Marker', cursive;font-size:26px;letter-spacing:1px;color:#35f7c6;margin-bottom:6px;">Pacman</div>
+        <div style="font-family:'Permanent Marker', cursive;font-size:26px;letter-spacing:1px;color:#35f7c6;margin-bottom:6px;">Pac-Man</div>
         <div style="font-size:12px;color:#bfe8ff;opacity:.95;margin-bottom:14px;">Modern Smartphone Edition</div>
         <button class="pill-btn sound-btn" data-key="83" aria-label="Toggle Sound (S)">🔊 Sound</button>
         <button id="btnStartGame" style="width:100%;padding:12px 10px;margin:6px 0;background:linear-gradient(90deg,#00ffaa,#00ccff);border:none;border-radius:10px;color:#001;font-weight:700;letter-spacing:.5px;box-shadow:0 6px 16px rgba(0,204,255,.35);">START GAME</button>
@@ -167,6 +167,15 @@
             controls.style.opacity = '0';
             controls.style.pointerEvents = 'none';
             console.log("Pacman: Controls hidden during splash");
+          }
+          
+          // Hide close button during splash/loading
+          var closeBtn = document.getElementById('btnCloseGame');
+          if (closeBtn) {
+            closeBtn.style.display = 'none';
+            closeBtn.style.visibility = 'hidden';
+            closeBtn.style.opacity = '0';
+            console.log("Pacman: Close button hidden during splash");
           }
         })();
         
@@ -678,6 +687,14 @@
               pacman.style.visibility = 'visible';
             }
             
+            // Show close button - always visible during game (including game over)
+            var closeBtn = document.getElementById('btnCloseGame');
+            if (closeBtn) {
+              closeBtn.style.display = 'flex';
+              closeBtn.style.visibility = 'visible';
+              closeBtn.style.opacity = '1';
+            }
+            
             updateButtonState('WAITING');
           });
           
@@ -735,6 +752,14 @@
             var instructions = document.getElementById('instructions');
             if (instructions) {
               instructions.style.display = '';
+            }
+            
+            // Show close button - always visible during game
+            var closeBtn = document.getElementById('btnCloseGame');
+            if (closeBtn) {
+              closeBtn.style.display = 'flex';
+              closeBtn.style.visibility = 'visible';
+              closeBtn.style.opacity = '1';
             }
             
             updateButtonState('PLAYING');
@@ -960,10 +985,12 @@
                   controls.style.pointerEvents = 'none';
                 }
                 
-                // Hide close button
+                // Hide close button only when returning to home screen
                 var closeBtn = document.getElementById('btnCloseGame');
                 if (closeBtn) {
                   closeBtn.style.display = 'none';
+                  closeBtn.style.visibility = 'hidden';
+                  closeBtn.style.opacity = '0';
                 }
                 
                 // Hide h1 and instructions (game UI elements)
@@ -1051,10 +1078,8 @@
                       controls.style.pointerEvents = 'none';
                     }
                     
-                    var closeBtn = document.getElementById('btnCloseGame');
-                    if (closeBtn) {
-                      closeBtn.style.display = 'none';
-                    }
+                    // Close button should only be hidden on home screen (handled by CSS)
+                    // Don't hide it here as it should be visible during game
                     
                     var h1 = document.querySelector('h1');
                     if (h1 && h1.style.display !== 'none') {
