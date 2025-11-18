@@ -106,9 +106,19 @@ h1 {
   transform: scale(0.95);
 }
 
-/* Show close button only when game is playing */
-body.game-playing .close-game-btn {
+/* Show close button whenever game is active (playing, paused, game over, etc.) - never hide during game */
+body.game-playing .close-game-btn,
+body.game-over .close-game-btn {
   display: flex !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* Hide close button on home screen */
+body.home-visible .close-game-btn {
+  display: none !important;
+  visibility: hidden !important;
+  opacity: 0 !important;
 }
 
 #pacman {
