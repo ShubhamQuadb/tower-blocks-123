@@ -1285,6 +1285,22 @@ var PACMAN = (function () {
         document.addEventListener("keydown", keyDown, true);
         document.addEventListener("keypress", keyPress, true); 
         
+        // Listen for stopGame event to reset game to WAITING state
+        window.addEventListener("stopGame", function() {
+            console.log("Pacman: stopGame event received - resetting to WAITING state");
+            setState(WAITING);
+            level = 1;
+            if (user) user.reset();
+            if (map) {
+                map.reset();
+                map.draw(ctx);
+            }
+            // Stop all audio
+            if (audio && typeof audio.pause === 'function') {
+                audio.pause();
+            }
+        });
+        
         timer = window.setInterval(mainLoop, 1000 / Pacman.FPS);
     };
     
