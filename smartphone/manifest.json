@@ -13,22 +13,27 @@
   "background_color": "#000000",
   "icons": [
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTYiIGhlaWdodD0iNTYiIHZpZXdCb3g9IjAgMCA1NiA1NiIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjU2IiBoZWlnaHQ9IjU2IiBmaWxsPSIjMDAwMDAwIi8+CjxjaXJjbGUgY3g9IjI4IiBjeT0iMjgiIHI9IjIyIiBmaWxsPSIjRkZGRjAwIi8+CjxjaXJjbGUgY3g9IjI4IiBjeT0iMjAiIHI9IjMiIGZpbGw9IiMwMDAwMDAiLz4KPHBhdGggZD0iTTI4IDI4IEw0MiAxNCBMMjggMjggTDI4IDQyIiBmaWxsPSIjMDAwMDAwIi8+Cjwvc3ZnPg==",
+      "src": "icons/icon-56.svg",
       "sizes": "56x56",
       "type": "image/svg+xml"
     },
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTEyIiBoZWlnaHQ9IjExMiIgdmlld0JveD0iMCAwIDExMiAxMTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxMTIiIGhlaWdodD0iMTEyIiBmaWxsPSIjMDAwMDAwIi8+CjxjaXJjbGUgY3g9IjU2IiBjeT0iNTYiIHI9IjQ0IiBmaWxsPSIjRkZGRjAwIi8+CjxjaXJjbGUgY3g9IjU2IiBjeT0iNDAiIHI9IjYiIGZpbGw9IiMwMDAwMDAiLz4KPHBhdGggZD0iTTU2IDU2IEw4NCAyOCBMNTYgNTYgTDU2IDg0IiBmaWxsPSIjMDAwMDAwIi8+Cjwvc3ZnPg==",
+      "src": "icons/icon-112.svg",
       "sizes": "112x112",
       "type": "image/svg+xml"
     },
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTkyIiBoZWlnaHQ9IjE5MiIgdmlld0JveD0iMCAwIDE5MiAxOTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSIxOTIiIGhlaWdodD0iMTkyIiBmaWxsPSIjMDAwMDAwIi8+CjxjaXJjbGUgY3g9Ijk2IiBjeT0iOTYiIHI9Ijc2IiBmaWxsPSIjRkZGRjAwIi8+CjxjaXJjbGUgY3g9Ijk2IiBjeT0iNjgiIHI9IjEwIiBmaWxsPSIjMDAwMDAwIi8+CjxwYXRoIGQ9Ik05NiA5NiBMMTQ0IDQ4IEw5NiA5NiBMOTYgMTQ0IiBmaWxsPSIjMDAwMDAwIi8+Cjwvc3ZnPg==",
+      "src": "icons/icon-180.svg",
+      "sizes": "180x180",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "icons/icon-192.svg",
       "sizes": "192x192",
       "type": "image/svg+xml"
     },
     {
-      "src": "data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNTEyIiBoZWlnaHQ9IjUxMiIgdmlld0JveD0iMCAwIDUxMiA1MTIiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+CjxyZWN0IHdpZHRoPSI1MTIiIGhlaWdodD0iNTEyIiBmaWxsPSIjMDAwMDAwIi8+CjxjaXJjbGUgY3g9IjI1NiIgY3k9IjI1NiIgcj0iMjAwIiBmaWxsPSIjRkZGRjAwIi8+CjxjaXJjbGUgY3g9IjI1NiIgY3k9IjE4MCIgcj0iMjAiIGZpbGw9IiMwMDAwMDAiLz4KPHBhdGggZD0iTTI1NiAyNTYgTDM4NCAxMjggTDI1NiAyNTYgTDI1NiAzODQiIGZpbGw9IiMwMDAwMDAiLz4KPC9zdmc+",
+      "src": "icons/icon-512.svg",
       "sizes": "512x512",
       "type": "image/svg+xml"
     }
