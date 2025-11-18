@@ -860,7 +860,8 @@ var PACMAN = (function () {
         rewardedDialogEl = null,
         rewardedDialogButtons = [],
         rewardedSelectedIndex = 1,
-        rewardedDialogKeyHandler = null;
+        rewardedDialogKeyHandler = null,
+        lastStartToggleTs = 0;
 
     window.rewardedDialogActive = window.rewardedDialogActive || false;
 
@@ -911,6 +912,7 @@ var PACMAN = (function () {
     function startNewGame() {
         setState(WAITING);
         level = 1;
+        stored = null;
         user.reset();
         map.reset();
         map.draw(ctx);
@@ -937,6 +939,15 @@ var PACMAN = (function () {
             return true;
         }
         
+        var isStartToggleKey = (e.keyCode === KEY.N || e.keyCode === KEY.ENTER || e.keyCode === KEY.P || is5Key);
+        if (isStartToggleKey) {
+            var nowToggle = Date.now();
+            if (!e.isTrusted && (nowToggle - lastStartToggleTs) < 80) {
+                return true;
+            }
+            lastStartToggleTs = nowToggle;
+        }
+
         // Handle Back button (ESC key = 27, or Back button on JioPhone)
         if (keyCode === KEY.ESCAPE || keyCode === 27 || e.key === 'Backspace' || e.key === 'Escape') {
             var currentTime = Date.now();
@@ -974,21 +985,20 @@ var PACMAN = (function () {
             return false;
         }
         
-        if (e.keyCode === KEY.N) {
-            startNewGame();
-        } else if (e.keyCode === KEY.S) {
+        if (e.keyCode === KEY.S) {
             // Toggle sound state first
             localStorage["soundDisabled"] = String(!soundDisabled());
             // If sound is now disabled, stop all currently playing sounds
             if (soundDisabled()) {
                 audio.disableSound();
             }
-        } else if ((e.keyCode === KEY.P || e.keyCode === KEY.ENTER || is5Key) && state === PAUSE) {
+        } else if (isStartToggleKey && state === PAUSE) {
             // Resume on OK/5 or P button
             audio.resume();
             map.draw(ctx);
-            setState(stored);
-        } else if (e.keyCode === KEY.P || e.keyCode === KEY.ENTER || is5Key) {
+            setState(stored || PLAYING);
+            stored = null;
+        } else if (isStartToggleKey) {
             // Pause/Resume on OK/5 or P button
             if (state === PLAYING || state === COUNTDOWN) {
                 stored = state;
@@ -999,6 +1009,8 @@ var PACMAN = (function () {
             } else if (state === WAITING) {
                 // Start game if waiting
                 startNewGame();
+            } else if (canResumeFromHome()) {
+                resumeFromHome();
             }
         } else if (state !== PAUSE) {   
             return user.keyDown(e);
@@ -1545,6 +1557,21 @@ var PACMAN = (function () {
         console.log("JioGames: Game loop started at", Pacman.FPS, "FPS");
     };
     
+    function canResumeFromHome() {
+        return state === PAUSE && stored !== null && typeof stored !== "undefined";
+    }
+
+    function resumeFromHome() {
+        if (!canResumeFromHome()) {
+            return;
+        }
+        console.log("Resuming game from home screen");
+        audio.resume();
+        map.draw(ctx);
+        setState(stored);
+        stored = null;
+    }
+
     function goToHomeScreen() {
         console.log("Going to home screen");
         // Pause game if playing
@@ -1590,6 +1617,8 @@ var PACMAN = (function () {
         "init" : init,
         "startNewGame" : startNewGame,
         "goToHomeScreen" : goToHomeScreen,
+        "canResumeFromHome" : canResumeFromHome,
+        "resumeFromHome" : resumeFromHome,
         "exitGame" : exitGame,
         "gratifyUser" : gratifyUser,
         "rvSkipped" : rvSkipped
@@ -1772,10 +1801,9 @@ Object.prototype.clone = function () {
 
 // Game initialization is now handled by home screen controller
 // Game will start when user clicks start button or presses 5
-$(function(){
+function pacmanReadyCheck() {
   console.log("=== Game Ready - Waiting for user to start from home screen ===");
-  
-  // Check browser compatibility but don't auto-start
+
   if (!Modernizr.canvas || !Modernizr.localstorage) {
     console.error("Browser compatibility issue!");
     var el = document.getElementById("pacman");
@@ -1783,5 +1811,11 @@ $(function(){
       el.innerHTML = "Sorry, this browser doesn't support the game<br /><small>Canvas or LocalStorage not available</small>";
     }
   }
-});
+}
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", pacmanReadyCheck);
+} else {
+  pacmanReadyCheck();
+}
 
