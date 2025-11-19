@@ -1,39 +1,57 @@
 {
   "name": "Pacman Game",
   "short_name": "Pacman",
+  "package_name": "com.kaifoundry.pacmanJP",
   "description": "Classic Pacman game optimized for KaiOS and JioPhone devices",
   "version": "1.0.0",
-  "start_url": "/index.html",
-  "display": "standalone",
-  "background_color": "#000000",
-  "theme_color": "#000000",
-  "orientation": "portrait",
-  "scope": "/",
-  "icons": [
-    {
-      "src": "/icons/icon-56.png",
-      "sizes": "56x56",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-112.png",
-      "sizes": "112x112",
-      "type": "image/png",
-      "purpose": "any"
-    },
-    {
-      "src": "/icons/icon-112.png",
-      "sizes": "128x128",
-      "type": "image/png",
-      "purpose": "any"
+  "launch_path": "/index.html",
+  "icons": {
+    "56": "/icons/icon-56.png",
+    "112": "/icons/icon-112.png",
+    "128": "/icons/icon-112.png"
+  },
+  "developer": {
+    "name": "Pacman Developer",
+    "url": "https://github.com/qtech-internal/pacman"
+  },
+  "default_locale": "en",
+  "type": "web",
+  "chrome": {
+    "navigation": true
+  },
+  "orientation": ["portrait"],
+  "fullscreen": true,
+  "permissions": {
+    "audio-channel-content": {},
+    "storage": {
+      "description": "Required to store game progress and high scores"
     }
+  },
+  "installs_allowed_from": [
+    "*"
   ],
+  "locales": {
+    "en": {
+      "name": "Pacman Game",
+      "description": "Classic Pacman game for KaiOS"
+    },
+    "hi": {
+      "name": "पैकमैन गेम",
+      "description": "KaiOS के लिए क्लासिक पैकमैन गेम"
+    }
+  },
+  "activities": {
+    "dhis": {
+      "filters": {
+        "type": "game"
+      },
+      "href": "/index.html",
+      "disposition": "inline"
+    }
+  },
   "categories": [
     "games",
     "entertainment"
-  ],
-  "screenshots": [],
-  "prefer_related_applications": false
+  ]
 }
 
