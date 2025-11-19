@@ -1221,7 +1221,7 @@ var PACMAN = (function () {
     }
 
     function legacyRewardedConfirm() {
-        var accept = confirm("Watch a rewarded video ad to get +1 Nitro and continue playing?");
+        var accept = confirm("Watch a rewarded video ad to get +1 life and continue playing?");
         if (accept) {
             console.log("Pacman: User accepted rewarded ad (legacy)");
             if (typeof showAdRewarded === 'function') {

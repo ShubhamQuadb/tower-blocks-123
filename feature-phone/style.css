@@ -187,7 +187,7 @@ h1 {
   font-size: 32px;
   font-weight: bold;
   color: #FFFF00;
-  margin: 0 0 25px;
+  margin: 0 0 18px;
   text-shadow: 0 0 10px rgba(255, 255, 0, 0.5);
   letter-spacing: 2px;
   text-align: center;
@@ -203,7 +203,6 @@ h1 {
   font-weight: bold;
   font-family: Arial, sans-serif;
   cursor: pointer;
-  margin: 15px 0 20px;
   width: 100%;
   max-width: 180px;
   box-shadow: 0 4px 8px rgba(255, 255, 0, 0.3);
@@ -220,7 +219,7 @@ h1 {
 }
 
 .how-to-play {
-  margin-top: 15px;
+  margin-top: 13px;
   padding: 10px;
   background: rgba(255, 255, 255, 0.05);
   border-radius: 6px;
@@ -466,7 +465,6 @@ h1 {
   .start-button {
     padding: 10px 20px;
     font-size: 12px;
-    margin: 12px 0 15px;
     max-width: 160px;
   }
   
