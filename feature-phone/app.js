@@ -1540,16 +1540,19 @@ var PACMAN = (function () {
         var levelY = textBase + Math.max(8, Math.round(levelFontSize * 0.5));
         ctx.fillText(levelText, 5, levelY);
 
-        // Right side: Lives to the left of Home button area
-        // Home button is positioned at bottom right, so lives should be to its left
-        var homeButtonArea = 60; // Approximate space for Home button
-        var livesStartX = canvasWidth - homeButtonArea - (user.getLives() * 20) - 10;
-        var livesCenterY = topLeft + (footerHeight / 2);
+        // Right side: Lives at top right end, above Home button
+        // Calculate total width needed for all lives
+        var lifeSpacing = 18; // Space between each life icon
+        var totalLivesWidth = (user.getLives() * lifeSpacing);
+        // Start from right end, accounting for life radius
+        var livesStartX = canvasWidth - totalLivesWidth - 5;
+        // Position lives at top of footer (above Home button)
+        var livesCenterY = topLeft + Math.max(8, Math.round(footerHeight * 0.25));
         var lifeRadius = Math.max(4, Math.min(map.blockSize / 2, (footerHeight / 2) - 3));
 
         for (var i = 0, len = user.getLives(); i < len; i++) {
             ctx.beginPath();
-            var lifeX = livesStartX + (20 * i) + map.blockSize / 2;
+            var lifeX = livesStartX + (lifeSpacing * i) + lifeRadius;
             ctx.moveTo(lifeX, livesCenterY);
             ctx.arc(lifeX,
                     livesCenterY,
