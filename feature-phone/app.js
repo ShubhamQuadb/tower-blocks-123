@@ -1504,21 +1504,11 @@ var PACMAN = (function () {
         ctx.fillRect(0, topLeft, canvasWidth, footerHeight);
         ctx.fillStyle = "#FFFF00";
 
-        var livesStartX = canvasWidth - (user.getLives() * 20) - 5;
-        var livesCenterY = topLeft + (footerHeight / 2);
-        var lifeRadius = Math.max(4, Math.min(map.blockSize / 2, (footerHeight / 2) - 3));
-
-        for (var i = 0, len = user.getLives(); i < len; i++) {
-            ctx.beginPath();
-            var lifeX = livesStartX + (20 * i) + map.blockSize / 2;
-            ctx.moveTo(lifeX, livesCenterY);
-            ctx.arc(lifeX,
-                    livesCenterY,
-                    lifeRadius, Math.PI * 0.25, Math.PI * 1.75, false);
-            ctx.fill();
-        }
-
+        // Calculate font sizes
         var scoreFontSize = Math.max(16, Math.min(24, Math.round(map.blockSize * 1.3)));
+        var levelFontSize = Math.max(16, Math.min(24, Math.round(map.blockSize * 1.3)));
+        
+        // Left side: Score (S:) on top, Level (L) below
         ctx.font = "bold " + scoreFontSize + "px Calibri";
         var score = user.theScore();
         var scoreText = "S:" + score;
@@ -1539,21 +1529,33 @@ var PACMAN = (function () {
             }
             scoreWidth = ctx.measureText(scoreText).width;
         }
-        ctx.fillText(scoreText, 5, textBase);
         
-        var levelFontSize = Math.max(16, Math.min(24, Math.round(map.blockSize * 1.3)));
+        // Draw Score on top left
+        var scoreY = textBase - Math.max(6, Math.round(levelFontSize * 0.5));
+        ctx.fillText(scoreText, 5, scoreY);
+        
+        // Draw Level below Score (same X position) with more gap
         ctx.font = "bold " + levelFontSize + "px Calibri";
         var levelText = "L" + level;
-        var levelWidth = ctx.measureText(levelText).width;
-        var levelX = livesStartX - levelWidth - 15;
-        var minGap = Math.max(10, Math.round(levelFontSize * 0.6));
-        if (levelX < (20 + scoreWidth + minGap)) {
-            levelX = (20 + scoreWidth + minGap);
-            if (levelX + levelWidth > livesStartX - 5) {
-                levelX = (canvasWidth / 2) + 10;
-            }
+        var levelY = textBase + Math.max(8, Math.round(levelFontSize * 0.5));
+        ctx.fillText(levelText, 5, levelY);
+
+        // Right side: Lives to the left of Home button area
+        // Home button is positioned at bottom right, so lives should be to its left
+        var homeButtonArea = 60; // Approximate space for Home button
+        var livesStartX = canvasWidth - homeButtonArea - (user.getLives() * 20) - 10;
+        var livesCenterY = topLeft + (footerHeight / 2);
+        var lifeRadius = Math.max(4, Math.min(map.blockSize / 2, (footerHeight / 2) - 3));
+
+        for (var i = 0, len = user.getLives(); i < len; i++) {
+            ctx.beginPath();
+            var lifeX = livesStartX + (20 * i) + map.blockSize / 2;
+            ctx.moveTo(lifeX, livesCenterY);
+            ctx.arc(lifeX,
+                    livesCenterY,
+                    lifeRadius, Math.PI * 0.25, Math.PI * 1.75, false);
+            ctx.fill();
         }
-        ctx.fillText(levelText, levelX, textBase);
     }
 
     function redrawBlock(pos) {
