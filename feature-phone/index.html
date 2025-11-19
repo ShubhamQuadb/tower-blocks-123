@@ -96,6 +96,11 @@
       </div>
     </div>
 
+    <!-- Toast Notification -->
+    <div id="exit-toast" class="exit-toast" aria-live="polite" aria-atomic="true">
+      <span class="toast-text">Double click instantly for exit game</span>
+    </div>
+
     <!-- JioGames SDK (Load First) -->
     <script src="./jiogames_jp.js" type="text/javascript"></script>
     <script>
@@ -243,17 +248,36 @@
           if (homeScreen && homeScreen.style.display !== 'none') {
             var keyCode = e.keyCode || e.which;
             
-            // Back button (ESC = 27) - exit on home screen
+            // Back button (ESC = 27) - handle double press on home screen
             if (keyCode === 27 || e.key === 'Backspace' || e.key === 'Escape') {
               e.preventDefault();
               e.stopPropagation();
-              console.log("Back button on home screen - exiting");
-              if (typeof PACMAN !== 'undefined' && PACMAN.exitGame) {
-                PACMAN.exitGame();
+              
+              var currentTime = Date.now();
+              var timeSinceLastPress = currentTime - (window.lastHomeBackPress || 0);
+              
+              if (timeSinceLastPress < 600 && window.lastHomeBackPress > 0) {
+                // Double press - exit game
+                console.log("Back button double press on home screen - exiting");
+                window.lastHomeBackPress = 0;
+                if (typeof PACMAN !== 'undefined' && PACMAN.hideToast) {
+                  PACMAN.hideToast();
+                }
+                if (typeof PACMAN !== 'undefined' && PACMAN.exitGame) {
+                  PACMAN.exitGame();
+                } else {
+                  window.history.back();
+                }
+                return false;
               } else {
-                window.history.back();
+                // Single press - show toast
+                console.log("Back button single press on home screen - showing toast");
+                window.lastHomeBackPress = currentTime;
+                if (typeof PACMAN !== 'undefined' && PACMAN.showToast) {
+                  PACMAN.showToast();
+                }
+                return false;
               }
-              return false;
             }
             
             // 5 key (numeric keypad or regular), Enter key, or OK button
@@ -261,8 +285,14 @@
             if (keyCode === 53 || keyCode === 101 || keyCode === 13) {
               e.preventDefault();
               e.stopPropagation();
+              window.lastHomeBackPress = 0; // Reset back press timer
               startGame();
               return false;
+            }
+            
+            // Reset back press timer if other key is pressed
+            if (keyCode !== 27) {
+              window.lastHomeBackPress = 0;
             }
           }
         }

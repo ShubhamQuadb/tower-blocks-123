@@ -932,7 +932,8 @@ var PACMAN = (function () {
 
     // Back button handling - track last press time for double press detection
     var lastBackPress = 0;
-    var BACK_DOUBLE_PRESS_TIME = 500; // 500ms window for double press
+    var BACK_DOUBLE_PRESS_TIME = 600; // 600ms window for double press
+    var toastTimeout = null;
     
     function keyDown(e) {
         var keyCode = e.keyCode || e.which;
@@ -967,15 +968,17 @@ var PACMAN = (function () {
                 console.log("Back button double press - exiting game");
                 e.preventDefault();
                 e.stopPropagation();
+                hideToast();
                 exitGame();
                 return false;
             } else {
-                // Single press - go to home screen (no ad for back button)
+                // Single press - go to home screen and show toast
                 console.log("Back button single press - going to home screen");
                 e.preventDefault();
                 e.stopPropagation();
                 lastBackPress = currentTime;
                 goToHomeScreen(false);
+                showToast();
                 return false;
             }
         }
@@ -1888,8 +1891,39 @@ var PACMAN = (function () {
         pendingGoToHome = false;
     }
     
+    function showToast() {
+        var toast = document.getElementById('exit-toast');
+        if (!toast) return;
+        
+        // Clear any existing timeout
+        if (toastTimeout) {
+            clearTimeout(toastTimeout);
+        }
+        
+        // Show toast
+        toast.classList.add('show');
+        
+        // Auto-hide after 1.5 seconds
+        toastTimeout = setTimeout(function() {
+            hideToast();
+        }, 1500);
+    }
+    
+    function hideToast() {
+        var toast = document.getElementById('exit-toast');
+        if (!toast) return;
+        
+        toast.classList.remove('show');
+        
+        if (toastTimeout) {
+            clearTimeout(toastTimeout);
+            toastTimeout = null;
+        }
+    }
+    
     function exitGame() {
         console.log("Exiting game");
+        hideToast();
         // Close the app/window
         if (typeof window.close === 'function') {
             try {
@@ -1911,6 +1945,8 @@ var PACMAN = (function () {
         "canResumeFromHome" : canResumeFromHome,
         "resumeFromHome" : resumeFromHome,
         "exitGame" : exitGame,
+        "showToast" : showToast,
+        "hideToast" : hideToast,
         "gratifyUser" : gratifyUser,
         "rvSkipped" : rvSkipped,
         "onInterstitialAdClosed" : onInterstitialAdClosed
