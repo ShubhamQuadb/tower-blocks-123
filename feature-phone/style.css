@@ -332,6 +332,7 @@ h1 {
   min-height: 0; /* Allow shrinking */
   overflow: hidden;
   max-height: 100%;
+  position: relative; /* For absolute positioning of home button */
 }
 
 /* Optimized canvas size for 240x320 JioPhone */
@@ -351,6 +352,35 @@ h1 {
   max-height: 100% !important;
   display: block;
   margin: 0 auto;
+}
+
+/* Game Home Button - Bottom Right */
+.game-home-button {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(0, 0, 0, 0.7);
+  color: #FFFF00;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 9px;
+  font-weight: bold;
+  font-family: Arial, sans-serif;
+  cursor: pointer;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.5);
+  transition: background 0.2s, transform 0.1s;
+}
+
+.game-home-button:active {
+  transform: scale(0.95);
+  background: rgba(255, 255, 0, 0.2);
+}
+
+.game-home-button:focus {
+  outline: 1px solid #FFFF00;
+  outline-offset: 1px;
 }
 
 /* Key Guide for Feature Phones - Compact for 240x320 */

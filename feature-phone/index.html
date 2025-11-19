@@ -76,6 +76,7 @@
     <!-- Game Wrapper -->
     <div class="game-wrapper" id="game-wrapper" style="display: none;">
       <div id="pacman" aria-label="Pacman Game"></div>
+      <button id="game-home-btn" class="game-home-button">Home</button>
     </div>
 
     <!-- Rewarded Video Confirmation Dialog -->
@@ -171,6 +172,27 @@
           console.log("=== Home Screen: Starting Game ===");
           homeScreen.style.display = 'none';
           gameWrapper.style.display = 'flex';
+          
+          // Set up game home button
+          var gameHomeBtn = document.getElementById('game-home-btn');
+          if (gameHomeBtn) {
+            gameHomeBtn.addEventListener('click', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              console.log("Game home button clicked");
+              if (typeof PACMAN !== 'undefined' && typeof PACMAN.goToHomeScreen === 'function') {
+                // Show ad before going home (during gameplay)
+                PACMAN.goToHomeScreen(true);
+              } else {
+                // Fallback
+                var gameWrapper = document.getElementById('game-wrapper');
+                var homeScreen = document.getElementById('home-screen');
+                if (gameWrapper) gameWrapper.style.display = 'none';
+                if (homeScreen) homeScreen.style.display = 'flex';
+                window.gameStarted = false;
+              }
+            });
+          }
           
           // Initialize game after showing game wrapper
           setTimeout(function() {
