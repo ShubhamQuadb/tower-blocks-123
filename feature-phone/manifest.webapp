@@ -1,9 +1,10 @@
 {
+  "version": "1.0.0",
+  "version_code": 1,
   "name": "Pacman Game",
   "short_name": "Pacman",
-  "package": "com.kaifoundry.pacmanJP",
+  "package_name": "com.kaifoundry.pacmanJP",
   "description": "Classic Pacman game optimized for KaiOS and JioPhone devices",
-  "version": "1.0.0",
   "launch_path": "/index.html",
   "icons": {
     "56": "/icons/icon-56.png",
