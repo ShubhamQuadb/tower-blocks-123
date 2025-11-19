@@ -1,0 +1,39 @@
+{
+  "name": "Pacman Game",
+  "short_name": "Pacman",
+  "description": "Classic Pacman game optimized for KaiOS and JioPhone devices",
+  "version": "1.0.0",
+  "start_url": "/index.html",
+  "display": "standalone",
+  "background_color": "#000000",
+  "theme_color": "#000000",
+  "orientation": "portrait",
+  "scope": "/",
+  "icons": [
+    {
+      "src": "/icons/icon-56.png",
+      "sizes": "56x56",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-112.png",
+      "sizes": "112x112",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-112.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "categories": [
+    "games",
+    "entertainment"
+  ],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
+

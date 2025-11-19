@@ -861,7 +861,11 @@ var PACMAN = (function () {
         rewardedDialogButtons = [],
         rewardedSelectedIndex = 1,
         rewardedDialogKeyHandler = null,
-        lastStartToggleTs = 0;
+        lastStartToggleTs = 0,
+        gameOverDialogEl = null,
+        gameOverDialogKeyHandler = null,
+        pendingGoToHome = false,
+        pendingAdCallback = null;
 
     window.rewardedDialogActive = window.rewardedDialogActive || false;
 
@@ -935,6 +939,11 @@ var PACMAN = (function () {
         // Handle 5 key (regular 5, numpad 5, or KEY['5'])
         var is5Key = (keyCode === KEY['5'] || keyCode === 53 || keyCode === 101);
 
+        // Check if game over dialog is active first
+        if (window.gameOverDialogActive) {
+            return true; // Let the dialog handler process it
+        }
+
         if (window.rewardedDialogActive) {
             return true;
         }
@@ -961,12 +970,12 @@ var PACMAN = (function () {
                 exitGame();
                 return false;
             } else {
-                // Single press - go to home screen
+                // Single press - go to home screen (no ad for back button)
                 console.log("Back button single press - going to home screen");
                 e.preventDefault();
                 e.stopPropagation();
                 lastBackPress = currentTime;
-                goToHomeScreen();
+                goToHomeScreen(false);
                 return false;
             }
         }
@@ -976,12 +985,14 @@ var PACMAN = (function () {
             lastBackPress = 0;
         }
         
-        // Handle SoftRight key - go to home screen
+        // Handle SoftRight key - go to home screen (show ad if during gameplay)
         if (e.key === 'SoftRight' || e.keyCode === 18 || (e.key && e.key.toLowerCase() === 'softright')) {
             console.log("SoftRight key pressed - going to home screen");
             e.preventDefault();
             e.stopPropagation();
-            goToHomeScreen();
+            // Show ad if game is actively playing
+            var shouldShowAd = (state === PLAYING || state === COUNTDOWN);
+            goToHomeScreen(shouldShowAd);
             return false;
         }
         
@@ -1007,8 +1018,14 @@ var PACMAN = (function () {
                 map.draw(ctx);
                 dialog("Paused");
             } else if (state === WAITING) {
-                // Start game if waiting
-                startNewGame();
+                // Check if game over (no lives) - restart game
+                if (user && user.getLives() <= 0) {
+                    console.log("Pacman: Restarting game from game over state");
+                    startNewGame();
+                } else {
+                    // Start game if waiting
+                    startNewGame();
+                }
             } else if (canResumeFromHome()) {
                 resumeFromHome();
             }
@@ -1019,25 +1036,80 @@ var PACMAN = (function () {
     }    
 
     function loseLife() {        
-        setState(WAITING);
         user.loseLife();
         if (user.getLives() > 0) {
+            setState(WAITING);
             startLevel();
         } else {
-            // Game Over - check for rewarded ad
-            console.log("Pacman: Game Over - checking for rewarded ad");
-            handleGameOver();
+            // Game Over - set state and show game over
+            console.log("Pacman: Game Over - no lives left");
+            setState(WAITING);
+            map.draw(ctx);
+            // Show game over message on canvas immediately
+            showGameOverOnCanvas();
+            // Then handle ads and dialog
+            setTimeout(function() {
+                handleGameOver();
+            }, 1000); // Show canvas message for 1 second first
         }
     }
     
+    function showGameOverOnCanvas() {
+        if (!ctx || !map) return;
+        
+        console.log("Pacman: Showing game over on canvas");
+        map.draw(ctx);
+        
+        // Draw semi-transparent overlay
+        ctx.fillStyle = "rgba(0, 0, 0, 0.8)";
+        ctx.fillRect(0, 0, map.width * map.blockSize, map.height * map.blockSize);
+        
+        // Draw "Game Over" text
+        ctx.fillStyle = "#FFFF00";
+        ctx.font = "bold " + Math.max(20, map.blockSize * 1.5) + "px Calibri";
+        var gameOverText = "GAME OVER";
+        var textWidth = ctx.measureText(gameOverText).width;
+        var x = ((map.width * map.blockSize) - textWidth) / 2;
+        var y = (map.height * map.blockSize) / 2 - 20;
+        ctx.fillText(gameOverText, x, y);
+        
+        // Draw "Click 5 to Restart" text
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = Math.max(14, map.blockSize) + "px Calibri";
+        var restartText = "Click 5 to Restart";
+        var restartWidth = ctx.measureText(restartText).width;
+        var restartX = ((map.width * map.blockSize) - restartWidth) / 2;
+        var restartY = y + 40;
+        ctx.fillText(restartText, restartX, restartY);
+        
+        // Draw footer
+        drawFooter();
+    }
+    
     function handleGameOver() {
+        console.log("Pacman: handleGameOver called");
         // Check if rewarded ad is available
         if (typeof isRVReady !== 'undefined' && isRVReady) {
             console.log("Pacman: Rewarded ad available - showing confirm dialog");
             showRewardedVideoConfirmation();
         } else {
             console.log("Pacman: No rewarded ad available - posting score and showing interstitial");
-            postScoreAndShowAd();
+            // Show ad if available, otherwise show dialog directly
+            if (typeof showAd === 'function' && typeof isAdReady !== 'undefined' && isAdReady) {
+                postScoreAndShowAd(function() {
+                    console.log("Pacman: Ad callback executed - showing game over dialog");
+                    showGameOverDialog();
+                });
+            } else {
+                // No ad ready, show dialog directly
+                console.log("Pacman: No ad ready - showing game over dialog directly");
+                if (typeof postScore === 'function') {
+                    postScore(user.theScore());
+                }
+                setTimeout(function() {
+                    showGameOverDialog();
+                }, 500);
+            }
         }
     }
     
@@ -1081,11 +1153,15 @@ var PACMAN = (function () {
             if (typeof showAdRewarded === 'function') {
                 showAdRewarded();
             } else {
-                postScoreAndShowAd();
+                postScoreAndShowAd(function() {
+                    showGameOverDialog();
+                });
             }
         } else {
             console.log("Pacman: Rewarded dialog - user chose Skip");
-            postScoreAndShowAd();
+            postScoreAndShowAd(function() {
+                showGameOverDialog();
+            });
         }
     }
 
@@ -1175,17 +1251,41 @@ var PACMAN = (function () {
         document.addEventListener('keydown', rewardedDialogKeyHandler, true);
     }
     
-    function postScoreAndShowAd() {
+    function postScoreAndShowAd(callback) {
         // Post score
         console.log("Pacman: Posting score:", user.theScore());
         if (typeof postScore === 'function') {
             postScore(user.theScore());
         }
         
+        // Store callback for when ad closes
+        pendingAdCallback = callback;
+        
         // Show interstitial ad
         console.log("Pacman: Showing interstitial ad");
-        if (typeof showAd === 'function') {
+        if (typeof showAd === 'function' && typeof isAdReady !== 'undefined' && isAdReady) {
             showAd();
+            // Fallback: if ad doesn't close within reasonable time, call callback
+            setTimeout(function() {
+                if (pendingAdCallback) {
+                    console.log("Pacman: Ad callback timeout - executing callback");
+                    var cb = pendingAdCallback;
+                    pendingAdCallback = null;
+                    if (typeof cb === 'function') {
+                        cb();
+                    }
+                }
+            }, 10000); // 10 second fallback
+        } else {
+            // No ad ready, just call callback immediately
+            console.log("Pacman: No ad ready - executing callback immediately");
+            if (pendingAdCallback) {
+                var cb = pendingAdCallback;
+                pendingAdCallback = null;
+                if (typeof cb === 'function') {
+                    setTimeout(cb, 500);
+                }
+            }
         }
         
         // Re-cache ads after game over
@@ -1195,6 +1295,20 @@ var PACMAN = (function () {
                 gameCacheAd();
             }
         }, 1000);
+    }
+    
+    // Function to be called when interstitial ad closes (called from jiogames_jp.js)
+    function onInterstitialAdClosed() {
+        console.log("Pacman: Interstitial ad closed - checking for pending callback");
+        if (pendingAdCallback) {
+            var cb = pendingAdCallback;
+            pendingAdCallback = null;
+            setTimeout(function() {
+                if (typeof cb === 'function') {
+                    cb();
+                }
+            }, 500);
+        }
     }
     
     function gratifyUser() {
@@ -1215,7 +1329,158 @@ var PACMAN = (function () {
     function rvSkipped() {
         // Called when rewarded ad is skipped
         console.log("Pacman: Rewarded ad skipped - posting score");
-        postScoreAndShowAd();
+        postScoreAndShowAd(function() {
+            showGameOverDialog();
+        });
+    }
+    
+    function showGameOverDialog() {
+        console.log("Pacman: showGameOverDialog called");
+        
+        // Get dialog element
+        if (!gameOverDialogEl) {
+            gameOverDialogEl = document.getElementById('game-over-dialog');
+            if (!gameOverDialogEl) {
+                console.error("Game over dialog element not found in DOM!");
+                // Try to show a simple alert as fallback
+                var score = user ? user.theScore() : 0;
+                if (confirm("Game Over!\nFinal Score: " + score + "\n\nClick OK to play again")) {
+                    startNewGame();
+                } else {
+                    goToHomeScreen(false);
+                }
+                return;
+            }
+            
+            // Set up button click handler (only once)
+            var restartBtn = gameOverDialogEl.querySelector('[data-action="restart"]');
+            if (restartBtn) {
+                restartBtn.addEventListener('click', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    console.log("Pacman: Restart button clicked");
+                    closeGameOverDialog();
+                    startNewGame();
+                });
+            }
+            
+            // Set up key handler
+            gameOverDialogKeyHandler = handleGameOverDialogKey;
+        }
+        
+        // Ensure game wrapper is visible so dialog can be seen
+        var gameWrapper = document.getElementById('game-wrapper');
+        if (gameWrapper) {
+            gameWrapper.style.display = 'flex';
+        }
+        
+        // Hide home screen if visible
+        var homeScreen = document.getElementById('home-screen');
+        if (homeScreen) {
+            homeScreen.style.display = 'none';
+        }
+        
+        // Update score display
+        var scoreEl = document.getElementById('game-over-score');
+        if (scoreEl && user) {
+            var finalScore = user.theScore();
+            scoreEl.textContent = "Final Score: " + finalScore;
+            console.log("Pacman: Updated score display to:", finalScore);
+        }
+        
+        // Make sure dialog is visible
+        console.log("Pacman: Displaying game over dialog");
+        gameOverDialogEl.classList.add('visible');
+        gameOverDialogEl.setAttribute('aria-hidden', 'false');
+        gameOverDialogEl.style.display = 'flex';
+        gameOverDialogEl.style.zIndex = '10001';
+        gameOverDialogEl.style.position = 'fixed';
+        gameOverDialogEl.style.top = '0';
+        gameOverDialogEl.style.left = '0';
+        gameOverDialogEl.style.width = '100%';
+        gameOverDialogEl.style.height = '100%';
+        
+        // Remove old listener if exists
+        if (gameOverDialogKeyHandler) {
+            document.removeEventListener('keydown', gameOverDialogKeyHandler, true);
+        }
+        document.addEventListener('keydown', gameOverDialogKeyHandler, true);
+        
+        // Set a flag to indicate dialog is active
+        window.gameOverDialogActive = true;
+        
+        console.log("Pacman: Game over dialog should now be visible");
+        console.log("Pacman: Dialog element:", gameOverDialogEl);
+        console.log("Pacman: Dialog classes:", gameOverDialogEl.className);
+        console.log("Pacman: Dialog display:", gameOverDialogEl.style.display);
+    }
+    
+    function closeGameOverDialog() {
+        console.log("Pacman: Closing game over dialog");
+        window.gameOverDialogActive = false;
+        if (gameOverDialogEl) {
+            gameOverDialogEl.classList.remove('visible');
+            gameOverDialogEl.setAttribute('aria-hidden', 'true');
+            gameOverDialogEl.style.display = 'none';
+        }
+        if (gameOverDialogKeyHandler) {
+            document.removeEventListener('keydown', gameOverDialogKeyHandler, true);
+        }
+    }
+    
+    function handleGameOverDialogKey(e) {
+        // Check if dialog is actually visible
+        if (!gameOverDialogEl) {
+            return true;
+        }
+        
+        var isVisible = gameOverDialogEl.classList.contains('visible') || 
+                       gameOverDialogEl.style.display === 'flex' ||
+                       window.gameOverDialogActive;
+        
+        if (!isVisible) {
+            return true; // Let other handlers process if dialog not visible
+        }
+        
+        var keyCode = e.keyCode || e.which;
+        var key = e.key;
+        
+        console.log("Pacman: Game over dialog key pressed:", keyCode, key, "isVisible:", isVisible);
+        
+        var isConfirm = keyCode === KEY.ENTER || keyCode === 13 || keyCode === KEY['5'] || keyCode === 53 || keyCode === 101 || key === 'Enter' || key === '5';
+        var isBack = keyCode === KEY.ESCAPE || keyCode === 27 || keyCode === 18 ||
+                     key === 'Backspace' || key === 'Escape' || key === 'SoftRight';
+        
+        if (isConfirm) {
+            console.log("Pacman: Game over dialog - restarting game");
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof e.stopImmediatePropagation === 'function') {
+                e.stopImmediatePropagation();
+            }
+            window.gameOverDialogActive = false;
+            closeGameOverDialog();
+            startNewGame();
+            return false;
+        }
+        
+        if (isBack) {
+            console.log("Pacman: Game over dialog - going to home");
+            e.preventDefault();
+            e.stopPropagation();
+            if (typeof e.stopImmediatePropagation === 'function') {
+                e.stopImmediatePropagation();
+            }
+            window.gameOverDialogActive = false;
+            closeGameOverDialog();
+            goToHomeScreen(false);
+            return false;
+        }
+        
+        // Prevent other handlers from processing keys when dialog is visible
+        e.preventDefault();
+        e.stopPropagation();
+        return false;
     }
 
     function setState(nState) { 
@@ -1354,6 +1619,10 @@ var PACMAN = (function () {
         } else if (state === WAITING && stateChanged) {            
             stateChanged = false;
             map.draw(ctx);
+            // Check if game over (no lives)
+            if (user && user.getLives() <= 0 && !window.gameOverDialogActive) {
+                showGameOverOnCanvas();
+            }
             // dialog("Press 5 or OK to Start");            
         } else if (state === EATEN_PAUSE && 
                    (tick - timerStart) > (Pacman.FPS / 3)) {
@@ -1572,8 +1841,24 @@ var PACMAN = (function () {
         stored = null;
     }
 
-    function goToHomeScreen() {
-        console.log("Going to home screen");
+    function goToHomeScreen(showAdFirst) {
+        console.log("Going to home screen, showAdFirst:", showAdFirst);
+        
+        // If called during gameplay and ad should be shown
+        if (showAdFirst && (state === PLAYING || state === COUNTDOWN)) {
+            console.log("Pacman: Showing ad before going to home screen");
+            pendingGoToHome = true;
+            postScoreAndShowAd(function() {
+                actuallyGoToHomeScreen();
+            });
+            return;
+        }
+        
+        actuallyGoToHomeScreen();
+    }
+    
+    function actuallyGoToHomeScreen() {
+        console.log("Actually going to home screen");
         // Pause game if playing
         if (state === PLAYING || state === COUNTDOWN) {
             stored = state;
@@ -1595,6 +1880,7 @@ var PACMAN = (function () {
                 window.gameStarted = false;
             }
         }
+        pendingGoToHome = false;
     }
     
     function exitGame() {
@@ -1621,7 +1907,8 @@ var PACMAN = (function () {
         "resumeFromHome" : resumeFromHome,
         "exitGame" : exitGame,
         "gratifyUser" : gratifyUser,
-        "rvSkipped" : rvSkipped
+        "rvSkipped" : rvSkipped,
+        "onInterstitialAdClosed" : onInterstitialAdClosed
     };
     
 }());

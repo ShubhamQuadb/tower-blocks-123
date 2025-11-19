@@ -82,14 +82,26 @@ function callbacks(){
 
         console.log("JioGames: onAdClosed "+adSpotKey+" pIsVideoCompleted "+pIsVideoCompleted+" pIsEligibleForReward "+pIsEligibleForReward);
 
-        adSpotKey == adSpotInterstitial && (isAdReady = false, console.log("JioGames: onAdClosed MidRoll " + isAdReady));
-        adSpotKey == adSpotRewardedVideo && (isRVReady = false, console.log("JioGames: onAdClosed RewardedVideo " + isRVReady), c2_callFunction("rvNotReady"));
+        if (adSpotKey == adSpotInterstitial) {
+            isAdReady = false;
+            console.log("JioGames: onAdClosed MidRoll " + isAdReady);
+            // Notify game that interstitial ad closed
+            if (typeof PACMAN !== 'undefined' && typeof PACMAN.onInterstitialAdClosed === 'function') {
+                PACMAN.onInterstitialAdClosed();
+            }
+        }
+        
+        if (adSpotKey == adSpotRewardedVideo) {
+            isRVReady = false;
+            console.log("JioGames: onAdClosed RewardedVideo " + isRVReady);
+            c2_callFunction("rvNotReady");
 
-        if (adSpotKey == adSpotRewardedVideo && isRewardUser) {
-            isRewardUser = false;
-            GratifyReward();
-        } else if (adSpotKey == adSpotRewardedVideo && !isRewardUser) {
-            rvSkipped();
+            if (isRewardUser) {
+                isRewardUser = false;
+                GratifyReward();
+            } else {
+                rvSkipped();
+            }
         }
     };
 
