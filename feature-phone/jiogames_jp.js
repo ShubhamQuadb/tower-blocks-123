@@ -45,17 +45,17 @@ window.addEventListener('load', (event) => {
     insMidrollElement.className = 'adsbyjio';
     insMidrollElement.id = 'midroll';
     insMidrollElement.setAttribute('data-adspot-key', adSpotInterstitial_key);
-    insMidrollElement.setAttribute('data-source', package_name);
-    insMidrollElement.setAttribute('data-idfa', package_name + '_midrollidfa');
+    insMidrollElement.setAttribute('data-source', package);
+    insMidrollElement.setAttribute('data-idfa', package + '_midrollidfa');
     document.body.appendChild(insMidrollElement);
 
     const insRVElement = document.createElement('ins');
     insRVElement.className = 'adsbyjio';
     insRVElement.id = 'rewarded';
     insRVElement.setAttribute('data-adspot-key', adSpotRewardedVideo_key);
-    insRVElement.setAttribute('data-source', package_name);
+    insRVElement.setAttribute('data-source', package);
     insRVElement.setAttribute('data-rewarded', 'true');
-    insRVElement.setAttribute('data-idfa', package_name + '_rewardedidfa');
+    insRVElement.setAttribute('data-idfa', package + '_rewardedidfa');
     document.body.appendChild(insRVElement);
 });
 
