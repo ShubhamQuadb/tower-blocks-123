@@ -188,11 +188,17 @@ function cacheAd() {
     cacheAdMidRoll(adSpotInterstitial, packageName);
 }
 function cacheAdRewarded() {
+    // Only cache RV once per session - check if already cached or used
     if (isRVReady) {
         console.log("JioGames: cacheAdRewarded skipped - rewarded ad already ready (isRVReady=true)");
         return;
     }
+    if (window.rvVideoCachedOnce) {
+        console.log("JioGames: cacheAdRewarded skipped - RV video already cached once in this session");
+        return;
+    }
     console.log("JioGames: cacheAdRewarded called - caching rewarded ad");
+    window.rvVideoCachedOnce = true; // Mark as cached
     cacheAdRewardedVideo(adSpotRewardedVideo, packageName);
 }
 function showAd() {
