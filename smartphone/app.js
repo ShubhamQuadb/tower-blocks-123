@@ -829,6 +829,28 @@ var PACMAN = (function () {
         audio.play("start");
         timerStart = tick;
         setState(COUNTDOWN);
+        
+        // Cache ads when level starts (only for levels > 1, level 1 already cached in startNewGame)
+        // Prevent multiple calls in same session
+        if (level > 1) {
+            try {
+                // Prevent multiple calls - check if already caching
+                if (!window.isCachingAds) {
+                    window.isCachingAds = true;
+                    gameCacheAd();
+                    console.log("Pacman: Ads caching at level " + level + " start");
+                    // Reset isCachingAds flag after caching completes
+                    setTimeout(function() {
+                        window.isCachingAds = false;
+                    }, 10000); // Reset after 10 seconds
+                } else {
+                    console.log("Pacman: Ads already caching, skipping duplicate call on level start");
+                }
+            } catch(e) { 
+                console.log(e);
+                window.isCachingAds = false; // Reset on error
+            }
+        }
     }    
 
     function startNewGame() {
@@ -856,7 +878,7 @@ var PACMAN = (function () {
                 window.isCachingAds = true;
                 gameCacheAd();
                 console.log("Pacman: Ads caching at game start (mid-roll + rewarded)");
-                // Reset flag after caching completes
+                // Reset isCachingAds flag after caching completes
                 setTimeout(function() {
                     window.isCachingAds = false;
                 }, 10000); // Reset after 10 seconds
@@ -1275,7 +1297,7 @@ var PACMAN = (function () {
         dialog("🎉 Congratulations! Level " + (level - 1) + " Complete!");
 
         // No ads during game running - removed ad show from level completion
-        // No caching during gameplay - caching only on game start and play again
+        // Caching will happen when next level starts (in startLevel function)
         
         // Start next level after message display
         setTimeout(function() {
