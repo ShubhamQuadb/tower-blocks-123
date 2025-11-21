@@ -587,12 +587,16 @@
               }
               document.body.classList.remove('home-visible');
               document.body.classList.remove('game-over');
+              // Reset game over flag when hiding overlay to start new game
+              window.isGameOver = false;
               // Banner hide removed per user request
             } else {
               // Returning to home screen - hide controls and show home
               document.body.classList.remove('game-playing');
               document.body.classList.remove('game-over');
               document.body.classList.add('home-visible');
+              // Reset game over flag when returning to home
+              window.isGameOver = false;
               
               // Hide controls explicitly
               var controls = document.querySelector('.controls');
@@ -651,16 +655,50 @@
           
           if (btnPlayAgain) {
             btnPlayAgain.addEventListener('click', function(){
+              console.log('Pacman: Play Again button clicked');
               window.hideGameOverOverlay({hideHome: true});
               gameStartedByUser = true;
+              // Clear game over flag to allow game to start
+              window.isGameOver = false;
+              // Hide home screen and show game immediately
+              var home = document.getElementById('home');
+              if (home) {
+                home.style.display = 'none';
+              }
+              document.body.classList.remove('home-visible');
+              document.body.classList.remove('game-over');
+              document.body.classList.add('game-playing');
+              
+              // Show game wrapper and canvas
+              var gameWrapper = document.querySelector('.game-wrapper');
+              if (gameWrapper) {
+                gameWrapper.style.display = 'flex';
+              }
+              var pacman = document.getElementById('pacman');
+              if (pacman) {
+                pacman.style.display = 'block';
+              }
+              
+              // Start game - fire N key
               setTimeout(function() {
                 fireKey(78);
+                // Ensure button shows Pause after game starts (not Start)
+                setTimeout(function() {
+                  if (typeof updateButtonState === 'function') {
+                    updateButtonState('COUNTDOWN'); // This will update to Pause when gamePlaying event fires
+                  }
+                }, 100);
               }, 60);
             });
           }
           
           if (btnCloseGameOver) {
             btnCloseGameOver.addEventListener('click', function(){
+              console.log('Pacman: Back to Home button clicked');
+              // Reset game over flag to allow fresh game start from home page
+              window.isGameOver = false;
+              // Reset game started flag
+              gameStartedByUser = false;
               window.hideGameOverOverlay();
             });
           }
@@ -773,6 +811,9 @@
             e.preventDefault();
             e.stopPropagation();
             
+            console.log('Pacman: Start Game button clicked on home page');
+            // Reset game over flag to allow fresh game start
+            window.isGameOver = false;
             // Mark that user has started the game
             gameStartedByUser = true;
             if (typeof window.hideGameOverOverlay === 'function') {
@@ -928,7 +969,7 @@
             // Don't hide canvas if user has already started the game
             // This prevents canvas from disappearing during countdown or initial state
             if (gameStartedByUser) {
-              console.log('Pacman: Ignoring gameWaiting - game already started by user');
+              console.log('Pacman: Ignoring gameWaiting - game already started by user, not updating button');
               return;
             }
             
@@ -946,7 +987,10 @@
               console.log('Pacman: Controls hidden - game waiting');
             }
             
-            updateButtonState('WAITING');
+            // Only update button to Start if not game over and game not started by user
+            if (!window.isGameOver && !gameStartedByUser) {
+              updateButtonState('WAITING');
+            }
           });
           
           // Handle game over event - show home + overlay
@@ -996,6 +1040,9 @@
             
             // Mark that game has started (in case event fires before button click)
             gameStartedByUser = true;
+            
+            // Update button to show Pause (not Start) when game is playing
+            updateButtonState('PLAYING');
             
             // Remove home-visible and game-over classes when game actually starts playing
             document.body.classList.remove('home-visible');
