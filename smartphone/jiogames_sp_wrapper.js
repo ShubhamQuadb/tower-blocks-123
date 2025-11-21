@@ -197,6 +197,11 @@ function cacheAdRewarded() {
         console.log("JioGames: cacheAdRewarded skipped - RV video already cached once in this session");
         return;
     }
+    // Also check if RV has been used - don't cache again if already used
+    if (window.rvVideoUsedOnce) {
+        console.log("JioGames: cacheAdRewarded skipped - RV video already used once in this session");
+        return;
+    }
     console.log("JioGames: cacheAdRewarded called - caching rewarded ad");
     window.rvVideoCachedOnce = true; // Mark as cached
     cacheAdRewardedVideo(adSpotRewardedVideo, packageName);
