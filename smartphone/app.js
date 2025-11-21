@@ -1005,16 +1005,9 @@ var PACMAN = (function () {
             dialog("Game Over! Score: " + finalScore + ". Press START");
             drawFooter();
             
-            // Show game over overlay immediately
-            try {
-                if (window.showGameOverOverlay) {
-                    window.showGameOverOverlay({score: finalScore, level: finalLevel});
-                }
-            } catch(e) {
-                console.log("Pacman: Unable to show game over overlay", e);
-            }
-            
+            // Don't show game over overlay immediately - wait for ad flow to complete
             // Game Over Flow: Priority - RV video first, then showAds
+            // Game over popup will be shown after ads close (or immediately if no ads)
             setTimeout(function() {
                 try {
                     // Check if RV video is available AND hasn't been used yet in this session
@@ -1086,13 +1079,34 @@ var PACMAN = (function () {
                             console.log("Pacman: Setting pendingGameOverPopup before showing interstitial ad", window.pendingGameOverPopup);
                             showAd();
                             console.log("Pacman: Interstitial ad shown, waiting for adClosed event");
+                            
+                            // Fallback: If adClosed event doesn't fire within 10 seconds, show popup anyway
+                            setTimeout(function() {
+                                if (window.pendingGameOverPopup) {
+                                    console.log("Pacman: Fallback - showing game over popup (adClosed event may not have fired)");
+                                    var popupData = window.pendingGameOverPopup;
+                                    window.pendingGameOverPopup = null;
+                                    try {
+                                        if (window.showGameOverOverlay) {
+                                            window.showGameOverOverlay({
+                                                score: popupData.score,
+                                                level: popupData.level
+                                            });
+                                            console.log("Pacman: Game over popup shown via fallback");
+                                        }
+                                    } catch(e) {
+                                        console.log("Pacman: Error showing game over overlay via fallback", e);
+                                    }
+                                }
+                            }, 10000); // 10 second fallback
                         } else {
                             console.log("Pacman: No ads available");
-                            // No ads available - ensure game over popup is shown
+                            // No ads available - show game over popup immediately
                             setTimeout(function() {
                                 try {
                                     if (window.showGameOverOverlay) {
                                         window.showGameOverOverlay({score: finalScore, level: finalLevel});
+                                        console.log("Pacman: Game over popup shown (no ads available)");
                                     }
                                 } catch(e) {
                                     console.log("Pacman: Error showing game over overlay", e);
@@ -1471,13 +1485,19 @@ var PACMAN = (function () {
                 var placement = event.detail ? event.detail.placement : null;
                 var placementStr = placement ? String(placement) : "";
                 console.log("Pacman: Ad placement:", placementStr, "pendingGameOverPopup:", window.pendingGameOverPopup);
+                
                 // Only handle interstitial ad close (not rewarded video)
                 // Check for interstitial ad spot key "qm19ko74" (NOT "s8omi3we" which is rewarded video)
-                if (placementStr && placementStr !== "s8omi3we" && (placementStr.indexOf("qm19ko74") !== -1 || placementStr === "qm19ko74")) {
+                var isInterstitial = placementStr && placementStr !== "s8omi3we" && 
+                                    (placementStr.indexOf("qm19ko74") !== -1 || placementStr === "qm19ko74");
+                
+                if (isInterstitial) {
                     // Interstitial ad closed - show game over popup if pending
                     if (window.pendingGameOverPopup) {
                         var popupData = window.pendingGameOverPopup;
                         console.log("Pacman: Interstitial ad closed, showing game over popup with data:", popupData);
+                        // Clear pending popup BEFORE showing to prevent duplicate calls
+                        window.pendingGameOverPopup = null;
                         setTimeout(function() {
                             try {
                                 if (window.showGameOverOverlay) {
@@ -1492,8 +1512,6 @@ var PACMAN = (function () {
                             } catch(e) {
                                 console.log("Pacman: Error showing game over overlay after ad close", e);
                             }
-                            // Clear pending popup AFTER showing
-                            window.pendingGameOverPopup = null;
                         }, 500); // Small delay to ensure ad is fully closed
                     } else {
                         console.log("Pacman: No pendingGameOverPopup found, skipping game over popup");
