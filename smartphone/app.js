@@ -1215,7 +1215,7 @@ var PACMAN = (function () {
             
             if (diff === 0) {
                 map.draw(ctx);
-                setState(PLAYING); // This will fire gamePlaying event
+                setState(PLAYING); // This will fire gamePlaying event on..
             } else {
                 if (diff !== lastTime) { 
                     lastTime = diff;
