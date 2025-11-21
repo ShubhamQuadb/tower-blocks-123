@@ -103,8 +103,12 @@ window.onAdClosed = function (data, pIsVideoCompleted, pIsEligibleForReward) {
     if (adSpotKey == adSpotRewardedVideo && isEligibleForReward) {
         GratifyReward();
     }    
-    // After an ad closes, try to cache the next ads (both interstitial and rewarded) - like Space Battle
-    try { gameCacheAd(); } catch(e) { console.warn('JioGames: gameCacheAd call failed', e); }
+    // No caching on ad close - caching only happens on start game and play again
+    try {
+        window.dispatchEvent(new CustomEvent('adClosed', { detail: { placement: adSpotKey } }));
+    } catch(evtErr) {
+        console.log('JioGames: Failed to dispatch adClosed event', evtErr);
+    }
 };
 
 window.onAdFailedToLoad = function (data, pDescription){
@@ -194,12 +198,22 @@ function cacheAdRewarded() {
 function showAd() {
     console.log("JioGames: showAd called");
     if (isAdReady) {
+        try {
+            window.dispatchEvent(new CustomEvent('adShown', { detail: { type: 'interstitial' } }));
+        } catch(e) {
+            console.log('JioGames: Failed to dispatch adShown event', e);
+        }
         showAdMidRoll(adSpotInterstitial, packageName);
     }
 }
 function showAdRewarded() {
     console.log("JioGames: showAdRewarded called");
     if (isRVReady) {
+        try {
+            window.dispatchEvent(new CustomEvent('adShown', { detail: { type: 'rewarded' } }));
+        } catch(e) {
+            console.log('JioGames: Failed to dispatch rewarded adShown event', e);
+        }
         showAdRewardedVideo(adSpotRewardedVideo, packageName);
         
         /******* CHEAT *******/
@@ -236,11 +250,14 @@ window.onUserPropertiesResponse = function(message)
 
     var element = document.createElement("div");
     element.id = 'bannercontainer';
-    element.style.position = 'absolute';
-    element.style.width = 'fit-content';
-    element.style.height = 'fit-content';
-    element.style.left = 'center';
-    element.style.bottom = '0%';
+    element.style.position = 'fixed';
+    element.style.width = 'auto';
+    element.style.height = 'auto';
+    element.style.left = '50%';
+    element.style.bottom = '12px';
+    element.style.transform = 'translateX(-50%)';
+    element.style.zIndex = '1250';
+    element.style.display = 'none';
     element.style.backgroundPosition = 'center center';
     element.style.backgroundRepeat = 'no-repeat';
     

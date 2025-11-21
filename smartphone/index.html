@@ -124,6 +124,29 @@
         </div>
       </div>
     </div>
+    <!-- Game Over Overlay -->
+    <div id="gameOverOverlay" aria-hidden="true">
+      <div class="overlay-card" role="dialog" aria-labelledby="gameOverTitle" aria-describedby="gameOverScore">
+        <div class="overlay-icon"><img src="icons/icon-56.svg" alt="Pacman" style="width:56px;height:56px;" /></div>
+        <div id="gameOverTitle" class="overlay-title">Game Over</div>
+        <p class="overlay-sub">Final Score</p>
+        <div id="gameOverScore" class="overlay-score">0</div>
+        <div class="overlay-metrics">
+          <div class="metric">
+            <span>Level Reached</span>
+            <strong id="gameOverLevel">1</strong>
+          </div>
+          <div class="metric">
+            <span>Best Score</span>
+            <strong id="gameOverBest">0</strong>
+          </div>
+        </div>
+        <div class="overlay-actions">
+          <button id="btnPlayAgain" class="overlay-primary">PLAY AGAIN</button>
+          <button id="btnCloseGameOver" class="overlay-secondary">Back to Home</button>
+        </div>
+      </div>
+    </div>
     <div id="shim">shim for font face</div>
     <h1>🎮 Pac-man</h1>
     <p id="instructions">
@@ -199,16 +222,7 @@
             }
           }, 300);
             
-            // Load banner immediately on page load (like Space Battle)
-            try{
-                        loadBanner();
-                        console.log("Pacman: Banner loading started");
-                        // Show banner after it loads
-                        setTimeout(function(){ 
-                                showBanner(); 
-                    setBottomBanner(); 
-                        }, 1000);
-                } catch(e) { console.log(e); }
+            // Banner loading removed per user request
             
             // Note: cacheAd() will be called ONLY at game start (in startNewGame())
             // NOT during initialization per JioGames guidelines
@@ -345,6 +359,13 @@
           var btnRewardWatch=document.getElementById('btnRewardWatch');
           var btnRewardSkip=document.getElementById('btnRewardSkip');
           var rewardCallbacks=null;
+          var gameOverOverlay=document.getElementById('gameOverOverlay');
+          var gameOverScore=document.getElementById('gameOverScore');
+          var gameOverLevel=document.getElementById('gameOverLevel');
+          var gameOverBest=document.getElementById('gameOverBest');
+          var btnPlayAgain=document.getElementById('btnPlayAgain');
+          var btnCloseGameOver=document.getElementById('btnCloseGameOver');
+          var BEST_SCORE_KEY='pacmanBestScore';
           
           function closeRewardPrompt(action){
             if (rewardModal) {
@@ -409,6 +430,154 @@
               closeRewardPrompt('cancel');
             }
           });
+
+          function ensureHomeSceneVisible() {
+            document.body.classList.add('home-visible');
+            document.body.classList.add('game-over');
+            document.body.classList.remove('game-playing');
+            if (hs) {
+              hs.style.display = 'flex';
+            }
+            
+            // Hide controls when showing home scene
+            var controls = document.querySelector('.controls');
+            if (controls) {
+              controls.style.display = 'none';
+              controls.style.visibility = 'hidden';
+              controls.style.opacity = '0';
+              controls.style.pointerEvents = 'none';
+              controls.style.setProperty('display', 'none', 'important');
+              controls.style.setProperty('visibility', 'hidden', 'important');
+            }
+            
+            var closeBtn = document.getElementById('btnCloseGame');
+            if (closeBtn) {
+              closeBtn.style.display = 'none';
+              closeBtn.style.visibility = 'hidden';
+              closeBtn.style.opacity = '0';
+            }
+          }
+          
+          window.showGameOverOverlay = function(details){
+            if (!gameOverOverlay) { return; }
+            details = details || {};
+            var score = typeof details.score === 'number' ? details.score : 0;
+            var levelReached = typeof details.level === 'number' ? details.level : 1;
+            
+            ensureHomeSceneVisible();
+            
+            if (gameOverScore) {
+              gameOverScore.textContent = score;
+            }
+            if (gameOverLevel) {
+              gameOverLevel.textContent = levelReached;
+            }
+            
+            var bestScore = parseInt(localStorage.getItem(BEST_SCORE_KEY) || '0', 10);
+            if (score > bestScore) {
+              bestScore = score;
+              localStorage.setItem(BEST_SCORE_KEY, String(bestScore));
+            }
+            if (gameOverBest) {
+              gameOverBest.textContent = bestScore;
+            }
+            
+            gameOverOverlay.classList.add('visible');
+            gameOverOverlay.setAttribute('aria-hidden', 'false');
+            
+            // Banner display removed per user request
+          };
+          
+          window.hideGameOverOverlay = function(options){
+            options = options || {};
+            if (!gameOverOverlay) { return; }
+            gameOverOverlay.classList.remove('visible');
+            gameOverOverlay.setAttribute('aria-hidden', 'true');
+            
+            if (options.hideHome) {
+              if (hs) {
+                hs.style.display = 'none';
+              }
+              document.body.classList.remove('home-visible');
+              document.body.classList.remove('game-over');
+              // Banner hide removed per user request
+            } else {
+              // Returning to home screen - hide controls and show home
+              document.body.classList.remove('game-playing');
+              document.body.classList.remove('game-over');
+              document.body.classList.add('home-visible');
+              
+              // Hide controls explicitly
+              var controls = document.querySelector('.controls');
+              if (controls) {
+                controls.style.display = 'none';
+                controls.style.visibility = 'hidden';
+                controls.style.opacity = '0';
+                controls.style.pointerEvents = 'none';
+                controls.style.setProperty('display', 'none', 'important');
+                controls.style.setProperty('visibility', 'hidden', 'important');
+              }
+              
+              // Show home screen
+              if (hs) {
+                hs.style.display = 'flex';
+              }
+              
+              // Hide game canvas
+              var gameWrapper = document.querySelector('.game-wrapper');
+              if (gameWrapper) {
+                gameWrapper.style.display = 'none';
+              }
+              var pacman = document.getElementById('pacman');
+              if (pacman) {
+                pacman.style.display = 'none';
+              }
+              
+              // Hide game UI elements
+              var h1 = document.querySelector('h1');
+              if (h1) {
+                h1.style.display = 'none';
+              }
+              var instructions = document.getElementById('instructions');
+              if (instructions) {
+                instructions.style.display = 'none';
+              }
+              
+              // Reset game started flag
+              gameStartedByUser = false;
+              
+              // Show interstitial ad before returning to home (Back to Home flow) - no caching
+              try {
+                if (typeof showAd === 'function' && window.isAdReady === true) {
+                  console.log('Pacman: Showing interstitial ad before returning to home (if available)');
+                  showAd();
+                } else {
+                  console.log('Pacman: Ad not available, skipping ad show on Back to Home');
+                }
+              } catch(e) {
+                console.log('Error showing ad:', e);
+              }
+              
+              console.log('Pacman: Returned to home screen, controls hidden');
+            }
+          };
+          
+          if (btnPlayAgain) {
+            btnPlayAgain.addEventListener('click', function(){
+              window.hideGameOverOverlay({hideHome: true});
+              gameStartedByUser = true;
+              setTimeout(function() {
+                fireKey(78);
+              }, 60);
+            });
+          }
+          
+          if (btnCloseGameOver) {
+            btnCloseGameOver.addEventListener('click', function(){
+              window.hideGameOverOverlay();
+            });
+          }
+          
           function fireKey(code){
             try{
               console.log('Pacman: fireKey called with code:', code);
@@ -519,13 +688,15 @@
             
             // Mark that user has started the game
             gameStartedByUser = true;
+            if (typeof window.hideGameOverOverlay === 'function') {
+              window.hideGameOverOverlay({hideHome: true});
+            }
             
             var home=document.getElementById('home');
             if(home){ 
               home.style.display='none'; 
             }
-            // Hide banner when game starts (direct call like Space Battle)
-            try{ hideBanner(); }catch(e){}
+            // Banner hide removed per user request
             
             // Remove home-visible class and show game wrapper immediately
             document.body.classList.remove('home-visible');
@@ -586,6 +757,31 @@
           var startPauseBtn = null;
           var currentGameState = 'WAITING';
           var isProcessingClick = false; // Debounce flag
+          
+          function forcePause(reason) {
+            if (currentGameState === 'PLAYING' || currentGameState === 'COUNTDOWN') {
+              console.log('Pacman: ' + reason + ' - auto pausing via P key');
+              try {
+                fireKey(80);
+              } catch(err) {
+                console.log('Pacman: Auto pause failed', err);
+              }
+            }
+          }
+          
+          document.addEventListener('visibilitychange', function() {
+            if (document.hidden) {
+              forcePause('App hidden');
+            }
+          });
+          
+          window.addEventListener('adShown', function() {
+            forcePause('Ad shown');
+          });
+          
+          window.addEventListener('blur', function() {
+            forcePause('Window blurred');
+          });
           
           // Function to update button text and state
           function updateButtonState(newState) {
@@ -657,49 +853,38 @@
             updateButtonState('WAITING');
           });
           
-          // Handle game over event separately - keep canvas and controls visible
+          // Handle game over event - show home + overlay
           window.addEventListener('gameOver', function() {
             console.log('Pacman: Received gameOver event');
-            // Game over - keep canvas visible AND show controls so user can start new game
-            document.body.classList.remove('game-playing');
-            document.body.classList.remove('home-visible'); // Remove if it was added
-            document.body.classList.add('game-over'); // Add game-over class to keep canvas visible
+            ensureHomeSceneVisible();
+            gameStartedByUser = false;
             
-            // Keep controls visible so user can press Start to play again
             var controls = document.querySelector('.controls');
             if (controls) {
-              controls.style.display = 'block';
-              controls.style.visibility = 'visible';
-              controls.style.opacity = '1';
-              controls.style.pointerEvents = 'auto';
-              console.log('Pacman: Controls kept visible - game over, user can start new game');
+              controls.style.display = 'none';
+              controls.style.visibility = 'hidden';
+              controls.style.opacity = '0';
+              controls.style.pointerEvents = 'none';
             }
             
-            // Ensure canvas stays visible
-            var gameWrapper = document.querySelector('.game-wrapper');
-            var pacman = document.getElementById('pacman');
-            if (gameWrapper) {
-              gameWrapper.style.display = 'flex';
-              gameWrapper.style.visibility = 'visible';
-            }
-            if (pacman) {
-              pacman.style.display = 'block';
-              pacman.style.visibility = 'visible';
-            }
-            
-            // Show close button - always visible during game (including game over)
             var closeBtn = document.getElementById('btnCloseGame');
             if (closeBtn) {
-              closeBtn.style.display = 'flex';
-              closeBtn.style.visibility = 'visible';
-              closeBtn.style.opacity = '1';
+              closeBtn.style.display = 'none';
+              closeBtn.style.visibility = 'hidden';
+              closeBtn.style.opacity = '0';
             }
             
             updateButtonState('WAITING');
+            
+            // Banner display removed per user request
           });
           
           window.addEventListener('gamePlaying', function() {
             console.log('Pacman: Received gamePlaying event');
+            
+            if (typeof window.hideGameOverOverlay === 'function') {
+              window.hideGameOverOverlay({hideHome: true});
+            }
             
             // Don't show controls if home screen is visible (user clicked X to exit)
             if (document.body.classList.contains('home-visible')) {
@@ -941,6 +1126,10 @@
                   console.log('Pacman: Error dispatching stopGame event:', e);
                 }
                 
+                if (typeof window.hideGameOverOverlay === 'function') {
+                  window.hideGameOverOverlay();
+                }
+                
                 // Stop/pause all audio when closing game
                 try {
                   // Pause all audio elements on the page
@@ -1013,6 +1202,8 @@
                   home.style.display = 'flex';
                 }
                 
+                // Banner display removed per user request
+                
                 // Hide game wrapper
                 var gameWrapper = document.querySelector('.game-wrapper');
                 if (gameWrapper) {
@@ -1037,29 +1228,13 @@
                   console.log('Error dispatching gameWaiting:', e);
                 }
                 
-                // 3. Cache ads for next session
+                // Show interstitial ad before returning to home (gotoHome flow) - no caching
                 try {
-                  if (typeof gameCacheAd === 'function') {
-                    console.log('Pacman: Caching interstitial ad');
-                    gameCacheAd(); // Cache interstitial ad (immediate)
-                    
-                    // Cache rewarded video ad after 5 seconds
-                    setTimeout(function() {
-                      console.log('Pacman: Caching rewarded video ad');
-                      if (typeof gameCacheAd === 'function') {
-                        gameCacheAd();
-                      }
-                    }, 5000);
-                  }
-                } catch(e) {
-                  console.log('Error caching ads:', e);
-                }
-                
-                // 4. Show interstitial ad if ready
-                try {
-                  if (typeof showAd === 'function') {
-                    console.log('Pacman: Attempting to show interstitial ad');
-                    showAd(); // Will show ad if ready, otherwise skip
+                  if (typeof showAd === 'function' && window.isAdReady === true) {
+                    console.log('Pacman: Showing interstitial ad before returning to home (if available)');
+                    showAd();
+                  } else {
+                    console.log('Pacman: Ad not available, skipping ad show on X click');
                   }
                 } catch(e) {
                   console.log('Error showing ad:', e);

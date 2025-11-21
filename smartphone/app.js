@@ -838,6 +838,9 @@ var PACMAN = (function () {
             if (typeof document !== 'undefined' && document.body) {
                 document.body.classList.remove('game-over');
             }
+            if (window.hideGameOverOverlay) {
+                window.hideGameOverOverlay({hideHome: true});
+            }
         } catch(e) {}
         
         setState(WAITING);
@@ -926,47 +929,85 @@ var PACMAN = (function () {
             var finalScore = user.theScore();
             console.log("Pacman: Game Over - Score: " + finalScore + ", Level: " + level);
             
+            // Game Over Flow: showAd() -> postScore() -> gameOver popup
             // Set state to WAITING (this will trigger gameOver event because lives = 0)
             setState(WAITING);
-            // Draw game over screen immediately
-            map.draw(ctx);
-            dialog("Game Over! Score: " + finalScore + ". Press START");
-            drawFooter();
-
-            var handleStandardGameOver = function() {
-                postScore(finalScore);
-                setTimeout(function(){ 
-                    // Redraw after ad delay to ensure canvas is visible
-                    map.draw(ctx);
-                    dialog("Game Over! Score: " + finalScore + ". Press START");
-                    drawFooter();
-                    showAd(); 
-                }, 500);
-            };
-
+            
+            // Step 1: Show interstitial ad first (mid-roll before popup)
             try {
-                // Direct calls like Space Battle (no typeof checks)
-                if (window.isRVReady === true) {
-                    if (typeof window.showRewardPrompt === 'function') {
-                        window.showRewardPrompt({
-                            score: finalScore,
-                            onConfirm: function() {
-                                showAdRewarded();
-                            },
-                            onCancel: handleStandardGameOver
-                        });
-                    } else {
-                        var wants = window.confirm('Continue with an extra life by watching a video?');
-                        if (wants) {
-                            showAdRewarded();
-                        } else {
-                            handleStandardGameOver();
-                        }
+                showAd();
+                console.log("Pacman: Interstitial ad shown before game over popup");
+            } catch(e) {
+                console.log("Pacman: Error showing ad:", e);
+            }
+            
+            // Step 2: Post score
+            postScore(finalScore);
+            console.log("Pacman: Score posted:", finalScore);
+            
+            // Step 3: Show game over popup after ad
+            setTimeout(function() {
+                // Draw game over screen
+                map.draw(ctx);
+                dialog("Game Over! Score: " + finalScore + ". Press START");
+                drawFooter();
+                
+                // Show game over overlay
+                try {
+                    if (window.showGameOverOverlay) {
+                        window.showGameOverOverlay({score: finalScore, level: level});
                     }
-                } else {
-                    handleStandardGameOver();
+                } catch(e) {
+                    console.log("Pacman: Unable to show game over overlay", e);
                 }
-            } catch(e) { console.log(e); }
+                
+                // Step 4: After popup is shown, check for rewarded video
+                setTimeout(function() {
+                    try {
+                        if (window.isRVReady === true) {
+                            // rvReady: show video confirmation popup
+                            if (typeof window.showRewardPrompt === 'function') {
+                                window.showRewardPrompt({
+                                    score: finalScore,
+                                    onConfirm: function() {
+                                        // User clicked yes - show rewarded ad -> give extralife and continue game
+                                        showAdRewarded();
+                                    },
+                                    onCancel: function() {
+                                        // User clicked no - showAd() -> postScore() -> gameover popup
+                                        showAd();
+                                        postScore(finalScore);
+                                        // Game over popup already shown above, just ensure it's visible
+                                        try {
+                                            if (window.showGameOverOverlay) {
+                                                window.showGameOverOverlay({score: finalScore, level: level});
+                                            }
+                                        } catch(e) {
+                                            console.log("Pacman: Error showing game over overlay on cancel", e);
+                                        }
+                                    }
+                                });
+                            } else {
+                                var wants = window.confirm('Continue with an extra life by watching a video?');
+                                if (wants) {
+                                    showAdRewarded();
+                                } else {
+                                    showAd();
+                                    postScore(finalScore);
+                                }
+                            }
+                        } else {
+                            // rvNotReady: showAd() -> postScore() -> gameOver popup
+                            showAd();
+                            postScore(finalScore);
+                            // Game over popup already shown above
+                            console.log("Pacman: Rewarded video not ready, showing interstitial and game over popup");
+                        }
+                    } catch(e) {
+                        console.log("Pacman: Error in rewarded video flow:", e);
+                    }
+                }, 500); // Small delay after popup is shown
+            }, 500); // Small delay to ensure ad shows first
         }
     }
 
@@ -1194,29 +1235,22 @@ var PACMAN = (function () {
         map.draw(ctx);
         dialog("🎉 Congratulations! Level " + (level - 1) + " Complete!");
 
-        // Show interstitial ad after each level completion (direct call like Space Battle)
-        setTimeout(function() {
-            try {
-                showAd();
-                console.log("Pacman: Interstitial shown after level complete");
-            } catch(e) { console.log(e); }
-        }, 800);
-        
-        // Cache ads for next level/session after showing ad
+        // No ads during game running - removed ad show from level completion
+        // Cache ads for next level/session (but don't show)
         setTimeout(function() {
             try {
                 gameCacheAd();
-                console.log("Pacman: Ads caching after level complete");
+                console.log("Pacman: Ads caching after level complete (no ad shown during gameplay)");
             } catch(e) { console.log(e); }
-        }, 2000); // Cache after 2 seconds (after ad is shown)
+        }, 1000);
         
-        // Start next level after message display (increased delay to prevent auto-close)
+        // Start next level after message display
         setTimeout(function() {
             totalGhostsEaten = 0; // Reset ghost count for new level
             map.reset();
             user.newLevel();
             startLevel();
-        }, 3000); // Increased to 3 seconds to prevent auto-close bug
+        }, 2000);
     };
 
     function keyPress(e) { 
@@ -1307,6 +1341,13 @@ var PACMAN = (function () {
     // Reward function: Give extra life when rewarded ad is watched
     window.giveRewardExtraLife = function() {
         console.log("Pacman: Granting reward - Extra life!");
+        try {
+            if (window.hideGameOverOverlay) {
+                window.hideGameOverOverlay({hideHome: true});
+            }
+        } catch(e) {
+            console.log("Pacman: Failed to hide game over overlay after reward", e);
+        }
         if (user && typeof user.addLife === 'function') {
             user.addLife();
             startLevel(); // Continue playing
