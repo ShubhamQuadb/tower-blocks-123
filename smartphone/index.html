@@ -766,25 +766,34 @@
               soundBtn.innerHTML = isSoundDisabled ? '🔇 Sound' : '🔊 Sound';
             }
             
-            // Update icon on click and keypress
+            // Update icon on click - immediate response
             soundBtn.addEventListener('click', function() {
-              // Fire 'S' key event to trigger sound toggle
+              // Toggle sound state immediately
+              const isSoundDisabled = localStorage["soundDisabled"] === "true";
+              localStorage["soundDisabled"] = String(!isSoundDisabled);
+              
+              // Update icon immediately
+              updateSoundIcon();
+              
+              // Fire 'S' key event to trigger sound toggle in game
               fireKey(83);
-              setTimeout(updateSoundIcon, 200); // Wait for localStorage to update
+              
+              // Update again after a short delay to ensure sync
+              setTimeout(updateSoundIcon, 50);
             });
             
-            // Listen for 'S' key press to update icon
+            // Listen for 'S' key press to update icon - faster response
             document.addEventListener('keydown', function(e) {
               if (e.keyCode === 83) { // 'S' key
-                setTimeout(updateSoundIcon, 200);
+                setTimeout(updateSoundIcon, 50); // Faster update
               }
             });
             
             // Set initial state
             updateSoundIcon();
             
-            // Refresh icon every second to ensure sync
-            setInterval(updateSoundIcon, 1000);
+            // Refresh icon every 500ms for faster sync (reduced from 1000ms)
+            setInterval(updateSoundIcon, 500);
           }
           
           // Single button for Start/Pause/Resume

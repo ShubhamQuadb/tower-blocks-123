@@ -983,12 +983,30 @@ var PACMAN = (function () {
                                     showAdRewarded();
                                 },
                                 onCancel: function() {
-                                    // User clicked no - show interstitial ad
-                                    console.log("Pacman: User cancelled RV video, showing interstitial ad");
+                                    // User clicked no (skip) - show interstitial ad then gameover popup
+                                    console.log("Pacman: User cancelled RV video, showing interstitial ad then gameover popup");
                                     if (window.isAdReady === true) {
                                         showAd();
+                                        // After ad closes, ensure gameover popup is shown
+                                        setTimeout(function() {
+                                            try {
+                                                if (window.showGameOverOverlay) {
+                                                    window.showGameOverOverlay({score: finalScore, level: finalLevel});
+                                                }
+                                            } catch(e) {
+                                                console.log("Pacman: Error showing game over overlay after skip", e);
+                                            }
+                                        }, 1000); // Show popup after ad
                                     } else {
-                                        console.log("Pacman: Interstitial ad not available");
+                                        console.log("Pacman: Interstitial ad not available, showing gameover popup");
+                                        // Show gameover popup even if ad not available
+                                        try {
+                                            if (window.showGameOverOverlay) {
+                                                window.showGameOverOverlay({score: finalScore, level: finalLevel});
+                                            }
+                                        } catch(e) {
+                                            console.log("Pacman: Error showing game over overlay", e);
+                                        }
                                     }
                                 }
                             });
@@ -1349,15 +1367,22 @@ var PACMAN = (function () {
     // Reward function: Give extra life when rewarded ad is watched
     window.giveRewardExtraLife = function() {
         console.log("Pacman: Granting reward - Extra life!");
+        
+        // Show gameover popup first (with score and level info)
+        var savedState = window.savedGameState || {};
+        var finalScore = savedState.score || user.theScore();
+        var finalLevel = savedState.level || level;
+        
         try {
-            if (window.hideGameOverOverlay) {
-                window.hideGameOverOverlay({hideHome: true});
+            if (window.showGameOverOverlay) {
+                window.showGameOverOverlay({score: finalScore, level: finalLevel});
+                console.log("Pacman: Gameover popup shown after RV video");
             }
         } catch(e) {
-            console.log("Pacman: Failed to hide game over overlay after reward", e);
+            console.log("Pacman: Failed to show game over overlay after reward", e);
         }
         
-        // Restore saved game state (score and level)
+        // Restore saved game state (score and level) for continuation
         if (window.savedGameState) {
             var savedState = window.savedGameState;
             if (savedState.score !== undefined && user && typeof user.addScore === 'function') {
@@ -1373,7 +1398,7 @@ var PACMAN = (function () {
                 level = savedState.level;
                 console.log("Pacman: Level restored to:", level);
             }
-            window.savedGameState = null; // Clear saved state
+            // Don't clear saved state yet - keep it for continuation
         }
         
         if (user && typeof user.addLife === 'function') {
@@ -1386,8 +1411,21 @@ var PACMAN = (function () {
                 user.newLevel(); // Reset user position but keep score
             }
             map.draw(ctx); // Redraw map
-            startLevel(); // Continue playing from same level
-            dialog("🎉 Extra Life! Continue playing!");
+            
+            // Hide gameover popup and start level after a short delay
+            setTimeout(function() {
+                try {
+                    if (window.hideGameOverOverlay) {
+                        window.hideGameOverOverlay({hideHome: true});
+                    }
+                } catch(e) {
+                    console.log("Pacman: Failed to hide game over overlay", e);
+                }
+                startLevel(); // Continue playing from same level
+                dialog("🎉 Extra Life! Continue playing!");
+                // Clear saved state after continuation starts
+                window.savedGameState = null;
+            }, 1500); // Show popup for 1.5 seconds before continuing
         }
     };
     
