@@ -423,10 +423,19 @@
             
             // Pause game and audio immediately when RV confirmation popup opens
             try {
-              // Fire P key to pause game
-              if (typeof fireKey === 'function') {
-                fireKey(80); // P key for pause
-                console.log('Pacman: P key fired to pause game - RV confirmation popup opened');
+              // Fire P key to pause game - use direct KeyboardEvent dispatch for reliability
+              if (typeof document !== 'undefined') {
+                var pauseEvent = new KeyboardEvent('keydown', {
+                  bubbles: true,
+                  cancelable: true,
+                  keyCode: 80,
+                  which: 80,
+                  key: 'P'
+                });
+                Object.defineProperty(pauseEvent, 'keyCode', {get: function(){return 80;}});
+                Object.defineProperty(pauseEvent, 'which', {get: function(){return 80;}});
+                document.dispatchEvent(pauseEvent);
+                console.log('Pacman: P key event dispatched to pause game - RV confirmation popup opened');
               }
               // Also pause audio directly
               var allAudio = document.querySelectorAll('audio');

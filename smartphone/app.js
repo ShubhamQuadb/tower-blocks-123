@@ -1013,8 +1013,15 @@ var PACMAN = (function () {
                             window.showRewardPrompt({
                                 score: finalScore,
                                 onConfirm: function() {
-                                    // User clicked yes - show rewarded ad -> give extralife and continue game
-                                    console.log("Pacman: User confirmed RV video, showing rewarded ad");
+                                    // User clicked yes - hide game over popup immediately, then show rewarded ad -> give extralife and continue game
+                                    console.log("Pacman: User confirmed RV video, hiding game over popup and showing rewarded ad");
+                                    try {
+                                        if (window.hideGameOverOverlay) {
+                                            window.hideGameOverOverlay({hideHome: true});
+                                        }
+                                    } catch(e) {
+                                        console.log("Pacman: Error hiding game over overlay on RV confirm", e);
+                                    }
                                     showAdRewarded();
                                 },
                                 onCancel: function() {
@@ -1397,20 +1404,6 @@ var PACMAN = (function () {
     window.giveRewardExtraLife = function() {
         console.log("Pacman: Granting reward - Extra life!");
         
-        // Show gameover popup first (with score and level info)
-        var savedState = window.savedGameState || {};
-        var finalScore = savedState.score || user.theScore();
-        var finalLevel = savedState.level || level;
-        
-        try {
-            if (window.showGameOverOverlay) {
-                window.showGameOverOverlay({score: finalScore, level: finalLevel});
-                console.log("Pacman: Gameover popup shown after RV video");
-            }
-        } catch(e) {
-            console.log("Pacman: Failed to show game over overlay after reward", e);
-        }
-        
         // Restore saved game state (score and level) for continuation
         if (window.savedGameState) {
             var savedState = window.savedGameState;
@@ -1427,7 +1420,6 @@ var PACMAN = (function () {
                 level = savedState.level;
                 console.log("Pacman: Level restored to:", level);
             }
-            // Don't clear saved state yet - keep it for continuation
         }
         
         if (user && typeof user.addLife === 'function') {
@@ -1441,20 +1433,21 @@ var PACMAN = (function () {
             }
             map.draw(ctx); // Redraw map
             
-            // Hide gameover popup and start level after a short delay
-            setTimeout(function() {
-                try {
-                    if (window.hideGameOverOverlay) {
-                        window.hideGameOverOverlay({hideHome: true});
-                    }
-                } catch(e) {
-                    console.log("Pacman: Failed to hide game over overlay", e);
+            // Ensure game over overlay is hidden (in case it was shown)
+            try {
+                if (window.hideGameOverOverlay) {
+                    window.hideGameOverOverlay({hideHome: true});
                 }
-                startLevel(); // Continue playing from same level
-                dialog("🎉 Extra Life! Continue playing!");
-                // Clear saved state after continuation starts
-                window.savedGameState = null;
-            }, 1500); // Show popup for 1.5 seconds before continuing
+            } catch(e) {
+                console.log("Pacman: Failed to hide game over overlay", e);
+            }
+            
+            // Start level immediately - no delay, no game over popup
+            startLevel(); // Continue playing from same level
+            dialog("🎉 Extra Life! Continue playing!");
+            
+            // Clear saved state after continuation starts
+            window.savedGameState = null;
         }
     };
     
