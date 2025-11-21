@@ -421,20 +421,22 @@
             rewardModal.classList.add('visible');
             rewardModal.setAttribute('aria-hidden','false');
             
-            // Pause game and audio when reward popup opens
+            // Pause game and audio immediately when RV confirmation popup opens
             try {
               // Fire P key to pause game
               if (typeof fireKey === 'function') {
                 fireKey(80); // P key for pause
+                console.log('Pacman: P key fired to pause game - RV confirmation popup opened');
               }
               // Also pause audio directly
               var allAudio = document.querySelectorAll('audio');
               for (var i = 0; i < allAudio.length; i++) {
                 if (allAudio[i] && !allAudio[i].paused) {
                   allAudio[i].pause();
+                  console.log('Pacman: Audio paused - RV confirmation popup opened');
                 }
               }
-              console.log('Pacman: Game and audio paused - reward popup opened');
+              console.log('Pacman: Game and audio paused - RV confirmation popup opened');
             } catch(e) {
               console.log('Pacman: Error pausing game/audio on reward popup', e);
             }

@@ -849,11 +849,24 @@ var PACMAN = (function () {
         map.reset();
         map.draw(ctx);
         
-        // Cache ads at game start (mid-roll + rewarded) - direct call like Space Battle
+        // Cache ads at game start (mid-roll + rewarded) - only once per game start
         try {
-            gameCacheAd();
-            console.log("Pacman: Ads caching at game start (mid-roll + rewarded)");
-        } catch(e) { console.log(e); }
+            // Prevent multiple calls - check if already caching
+            if (!window.isCachingAds) {
+                window.isCachingAds = true;
+                gameCacheAd();
+                console.log("Pacman: Ads caching at game start (mid-roll + rewarded)");
+                // Reset flag after caching completes
+                setTimeout(function() {
+                    window.isCachingAds = false;
+                }, 10000); // Reset after 10 seconds
+            } else {
+                console.log("Pacman: Ads already caching, skipping duplicate call");
+            }
+        } catch(e) { 
+            console.log(e);
+            window.isCachingAds = false; // Reset on error
+        }
         
         startLevel();
     }
@@ -1262,13 +1275,7 @@ var PACMAN = (function () {
         dialog("🎉 Congratulations! Level " + (level - 1) + " Complete!");
 
         // No ads during game running - removed ad show from level completion
-        // Cache ads for next level/session (but don't show)
-        setTimeout(function() {
-            try {
-                gameCacheAd();
-                console.log("Pacman: Ads caching after level complete (no ad shown during gameplay)");
-            } catch(e) { console.log(e); }
-        }, 1000);
+        // No caching during gameplay - caching only on game start and play again
         
         // Start next level after message display
         setTimeout(function() {
