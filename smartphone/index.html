@@ -372,6 +372,21 @@
               rewardModal.classList.remove('visible');
               rewardModal.setAttribute('aria-hidden','true');
             }
+            
+            // Resume game and audio when reward popup closes (only if not game over)
+            try {
+              if (action !== 'confirm' || !window.isRVReady) {
+                // Only resume if not continuing with extra life
+                var allAudio = document.querySelectorAll('audio');
+                for (var i = 0; i < allAudio.length; i++) {
+                  if (allAudio[i] && allAudio[i].paused) {
+                    // Don't auto-resume, let game state handle it
+                  }
+                }
+              }
+            } catch(e) {
+              console.log('Pacman: Error handling audio on reward popup close', e);
+            }
             var callbacks = rewardCallbacks;
             rewardCallbacks = null;
             if (!callbacks) { return; }
@@ -405,6 +420,24 @@
             }
             rewardModal.classList.add('visible');
             rewardModal.setAttribute('aria-hidden','false');
+            
+            // Pause game and audio when reward popup opens
+            try {
+              // Fire P key to pause game
+              if (typeof fireKey === 'function') {
+                fireKey(80); // P key for pause
+              }
+              // Also pause audio directly
+              var allAudio = document.querySelectorAll('audio');
+              for (var i = 0; i < allAudio.length; i++) {
+                if (allAudio[i] && !allAudio[i].paused) {
+                  allAudio[i].pause();
+                }
+              }
+              console.log('Pacman: Game and audio paused - reward popup opened');
+            } catch(e) {
+              console.log('Pacman: Error pausing game/audio on reward popup', e);
+            }
           };
           
           if (btnRewardWatch) {
@@ -485,6 +518,7 @@
             gameOverOverlay.classList.add('visible');
             gameOverOverlay.setAttribute('aria-hidden', 'false');
             
+            // Game and audio already paused in app.js on game over
             // Banner display removed per user request
           };
           

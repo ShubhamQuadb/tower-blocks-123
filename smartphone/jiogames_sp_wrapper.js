@@ -197,6 +197,33 @@ function cacheAdRewarded() {
 }
 function showAd() {
     console.log("JioGames: showAd called");
+    
+    // Pause game and audio when ad is shown
+    try {
+        // Fire P key to pause game
+        if (typeof document !== 'undefined') {
+            var pauseEvent = new KeyboardEvent('keydown', {
+                bubbles: true,
+                cancelable: true,
+                keyCode: 80,
+                which: 80
+            });
+            Object.defineProperty(pauseEvent, 'keyCode', {get: function(){return 80;}});
+            Object.defineProperty(pauseEvent, 'which', {get: function(){return 80;}});
+            document.dispatchEvent(pauseEvent);
+        }
+        // Pause all audio
+        var allAudio = document.querySelectorAll('audio');
+        for (var i = 0; i < allAudio.length; i++) {
+            if (allAudio[i] && !allAudio[i].paused) {
+                allAudio[i].pause();
+            }
+        }
+        console.log("JioGames: Game and audio paused - ad shown");
+    } catch(e) {
+        console.log("JioGames: Error pausing game/audio on ad show", e);
+    }
+    
     if (isAdReady) {
         try {
             window.dispatchEvent(new CustomEvent('adShown', { detail: { type: 'interstitial' } }));
@@ -208,6 +235,33 @@ function showAd() {
 }
 function showAdRewarded() {
     console.log("JioGames: showAdRewarded called");
+    
+    // Pause game and audio when rewarded ad is shown
+    try {
+        // Fire P key to pause game
+        if (typeof document !== 'undefined') {
+            var pauseEvent = new KeyboardEvent('keydown', {
+                bubbles: true,
+                cancelable: true,
+                keyCode: 80,
+                which: 80
+            });
+            Object.defineProperty(pauseEvent, 'keyCode', {get: function(){return 80;}});
+            Object.defineProperty(pauseEvent, 'which', {get: function(){return 80;}});
+            document.dispatchEvent(pauseEvent);
+        }
+        // Pause all audio
+        var allAudio = document.querySelectorAll('audio');
+        for (var i = 0; i < allAudio.length; i++) {
+            if (allAudio[i] && !allAudio[i].paused) {
+                allAudio[i].pause();
+            }
+        }
+        console.log("JioGames: Game and audio paused - rewarded ad shown");
+    } catch(e) {
+        console.log("JioGames: Error pausing game/audio on rewarded ad show", e);
+    }
+    
     if (isRVReady) {
         try {
             window.dispatchEvent(new CustomEvent('adShown', { detail: { type: 'rewarded' } }));
