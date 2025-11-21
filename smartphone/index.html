@@ -422,8 +422,9 @@
             rewardModal.setAttribute('aria-hidden','false');
             
             // Pause game and audio immediately when RV confirmation popup opens
+            // Use both KeyboardEvent and direct pause to ensure game stops
             try {
-              // Fire P key to pause game - use direct KeyboardEvent dispatch for reliability
+              // Method 1: Fire P key to pause game - use direct KeyboardEvent dispatch for reliability
               if (typeof document !== 'undefined') {
                 var pauseEvent = new KeyboardEvent('keydown', {
                   bubbles: true,
@@ -437,7 +438,8 @@
                 document.dispatchEvent(pauseEvent);
                 console.log('Pacman: P key event dispatched to pause game - RV confirmation popup opened');
               }
-              // Also pause audio directly
+              
+              // Method 2: Also pause audio directly and ensure game state is paused
               var allAudio = document.querySelectorAll('audio');
               for (var i = 0; i < allAudio.length; i++) {
                 if (allAudio[i] && !allAudio[i].paused) {
@@ -445,6 +447,14 @@
                   console.log('Pacman: Audio paused - RV confirmation popup opened');
                 }
               }
+              
+              // Method 3: Dispatch gamePaused event to ensure UI updates
+              try {
+                window.dispatchEvent(new CustomEvent('gamePaused'));
+              } catch(e) {
+                console.log('Pacman: Error dispatching gamePaused event', e);
+              }
+              
               console.log('Pacman: Game and audio paused - RV confirmation popup opened');
             } catch(e) {
               console.log('Pacman: Error pausing game/audio on reward popup', e);
@@ -529,8 +539,40 @@
             gameOverOverlay.classList.add('visible');
             gameOverOverlay.setAttribute('aria-hidden', 'false');
             
-            // Game and audio already paused in app.js on game over
-            // Banner display removed per user request
+            // Ensure game and audio are paused when game over popup opens
+            try {
+              // Fire P key to pause game
+              if (typeof document !== 'undefined') {
+                var pauseEvent = new KeyboardEvent('keydown', {
+                  bubbles: true,
+                  cancelable: true,
+                  keyCode: 80,
+                  which: 80,
+                  key: 'P'
+                });
+                Object.defineProperty(pauseEvent, 'keyCode', {get: function(){return 80;}});
+                Object.defineProperty(pauseEvent, 'which', {get: function(){return 80;}});
+                document.dispatchEvent(pauseEvent);
+                console.log('Pacman: P key event dispatched to pause game - Game over popup opened');
+              }
+              // Also pause audio directly
+              var allAudio = document.querySelectorAll('audio');
+              for (var i = 0; i < allAudio.length; i++) {
+                if (allAudio[i] && !allAudio[i].paused) {
+                  allAudio[i].pause();
+                  console.log('Pacman: Audio paused - Game over popup opened');
+                }
+              }
+              // Dispatch gamePaused event
+              try {
+                window.dispatchEvent(new CustomEvent('gamePaused'));
+              } catch(e) {
+                console.log('Pacman: Error dispatching gamePaused event', e);
+              }
+              console.log('Pacman: Game and audio paused - Game over popup opened');
+            } catch(e) {
+              console.log('Pacman: Error pausing game/audio on game over popup', e);
+            }
           };
           
           window.hideGameOverOverlay = function(options){

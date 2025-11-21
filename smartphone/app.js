@@ -855,6 +855,8 @@ var PACMAN = (function () {
 
     function startNewGame() {
         console.log("Pacman: Starting new game");
+        // Reset game start caching flag for new game session
+        window.gameStartCachingDone = false;
         // Remove game-over class when starting a new game
         try {
             if (typeof document !== 'undefined' && document.body) {
@@ -872,18 +874,24 @@ var PACMAN = (function () {
         map.draw(ctx);
         
         // Cache ads at game start (mid-roll + rewarded) - only once per game start
+        // Use session flag to prevent multiple caching on level 1
         try {
-            // Prevent multiple calls - check if already caching
-            if (!window.isCachingAds) {
+            // Prevent multiple calls - check if already caching AND if not already cached in this session
+            if (!window.isCachingAds && !window.gameStartCachingDone) {
                 window.isCachingAds = true;
+                window.gameStartCachingDone = true; // Mark that game start caching is done
                 gameCacheAd();
                 console.log("Pacman: Ads caching at game start (mid-roll + rewarded)");
-                // Reset isCachingAds flag after caching completes
+                // Reset isCachingAds flag after caching completes (but keep gameStartCachingDone)
                 setTimeout(function() {
                     window.isCachingAds = false;
                 }, 10000); // Reset after 10 seconds
             } else {
-                console.log("Pacman: Ads already caching, skipping duplicate call");
+                if (window.gameStartCachingDone) {
+                    console.log("Pacman: Game start caching already done in this session, skipping");
+                } else {
+                    console.log("Pacman: Ads already caching, skipping duplicate call");
+                }
             }
         } catch(e) { 
             console.log(e);
@@ -1214,6 +1222,45 @@ var PACMAN = (function () {
     function mainLoop() {
 
         var diff;
+        
+        // Check if any popup is open - if yes, pause game and sound
+        try {
+            var rewardModal = document.getElementById('rewardModal');
+            var gameOverOverlay = document.getElementById('gameOverOverlay');
+            var isPopupOpen = false;
+            
+            if (rewardModal && rewardModal.classList.contains('visible')) {
+                isPopupOpen = true;
+            }
+            if (gameOverOverlay && gameOverOverlay.getAttribute('aria-hidden') === 'false') {
+                isPopupOpen = true;
+            }
+            
+            if (isPopupOpen && state !== PAUSE && state !== WAITING) {
+                // Popup is open - pause game and sound
+                if (state === PLAYING || state === COUNTDOWN) {
+                    stored = state;
+                    setState(PAUSE);
+                    if (audio && typeof audio.pause === 'function') {
+                        audio.pause();
+                    }
+                    // Also pause all audio elements directly
+                    try {
+                        var allAudio = document.querySelectorAll('audio');
+                        for (var i = 0; i < allAudio.length; i++) {
+                            if (allAudio[i] && !allAudio[i].paused) {
+                                allAudio[i].pause();
+                            }
+                        }
+                    } catch(e) {
+                        // Ignore errors
+                    }
+                    console.log('Pacman: Game and audio paused because popup is open');
+                }
+            }
+        } catch(e) {
+            // Ignore errors in popup check
+        }
 
         if (state !== PAUSE) { 
             ++tick;
