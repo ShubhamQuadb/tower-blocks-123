@@ -831,20 +831,32 @@ var PACMAN = (function () {
         setState(COUNTDOWN);
         
         // Cache ads when level starts (only for levels > 1, level 1 already cached in startNewGame)
-        // Prevent multiple calls in same session
+        // Only cache once per level - check if this level has already been cached
         if (level > 1) {
             try {
-                // Prevent multiple calls - check if already caching
-                if (!window.isCachingAds) {
-                    window.isCachingAds = true;
-                    gameCacheAd();
-                    console.log("Pacman: Ads caching at level " + level + " start");
-                    // Reset isCachingAds flag after caching completes
-                    setTimeout(function() {
-                        window.isCachingAds = false;
-                    }, 10000); // Reset after 10 seconds
+                // Initialize level caching tracker if not exists
+                if (!window.levelCachingTracker) {
+                    window.levelCachingTracker = {};
+                }
+                
+                // Check if this level has already been cached
+                var levelKey = 'level_' + level;
+                if (!window.levelCachingTracker[levelKey]) {
+                    // This level hasn't been cached yet - cache it
+                    if (!window.isCachingAds) {
+                        window.isCachingAds = true;
+                        window.levelCachingTracker[levelKey] = true; // Mark this level as cached
+                        gameCacheAd();
+                        console.log("Pacman: Ads caching at level " + level + " start (first time for this level)");
+                        // Reset isCachingAds flag after caching completes
+                        setTimeout(function() {
+                            window.isCachingAds = false;
+                        }, 10000); // Reset after 10 seconds
+                    } else {
+                        console.log("Pacman: Ads already caching, skipping duplicate call on level start");
+                    }
                 } else {
-                    console.log("Pacman: Ads already caching, skipping duplicate call on level start");
+                    console.log("Pacman: Level " + level + " already cached in this session, skipping");
                 }
             } catch(e) { 
                 console.log(e);
@@ -862,6 +874,8 @@ var PACMAN = (function () {
         // Reset RV video flags for new game session (allow RV to be cached and shown once per new game)
         window.rvVideoCachedOnce = false;
         window.rvVideoUsedOnce = false;
+        // Reset level caching tracker for new game
+        window.levelCachingTracker = {};
         // Remove game-over class when starting a new game
         try {
             if (typeof document !== 'undefined' && document.body) {
