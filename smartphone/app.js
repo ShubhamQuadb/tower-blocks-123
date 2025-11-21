@@ -1024,31 +1024,20 @@ var PACMAN = (function () {
             dialog("Game Over! Score: " + finalScore + ". Press START");
             drawFooter();
             
-            // Show game over overlay immediately - it will be hidden if RV is confirmed
             // Store popup data globally to ensure it can be shown even if something tries to hide it
             window.currentGameOverData = {
                 score: finalScore,
                 level: finalLevel
             };
             
-            try {
-                if (window.showGameOverOverlay) {
-                    window.showGameOverOverlay({score: finalScore, level: finalLevel});
-                    console.log("Pacman: Game over popup shown immediately with score:", finalScore, "level:", finalLevel);
-                } else {
-                    console.log("Pacman: showGameOverOverlay function not available!");
-                }
-            } catch(e) {
-                console.log("Pacman: Unable to show game over overlay", e);
-            }
-            
             // Game Over Flow: Priority - RV video first, then showAds
+            // Don't show game over popup immediately if RV is available - show RV confirmation first
             setTimeout(function() {
                 try {
                     // Check if RV video is available AND hasn't been used yet in this session
                     if (window.isRVReady === true && !window.rvVideoUsedOnce) {
-                        // RV video available - show confirmation popup immediately
-                        console.log("Pacman: RV video available, showing confirmation popup");
+                        // RV video available - show confirmation popup FIRST (before game over popup)
+                        console.log("Pacman: RV video available, showing confirmation popup BEFORE game over popup");
                         if (typeof window.showRewardPrompt === 'function') {
                             window.showRewardPrompt({
                                 score: finalScore,
@@ -1070,8 +1059,10 @@ var PACMAN = (function () {
                                 },
                                 onCancel: function() {
                                     // User clicked no (skip) - show interstitial ad then gameover popup
-                                    console.log("Pacman: User cancelled RV video, showing interstitial ad then gameover popup");
+                                    console.log("Pacman: User cancelled RV video (skip), checking for interstitial ad");
                                     if (window.isAdReady === true) {
+                                        // Show ads available - show ad then game over popup
+                                        console.log("Pacman: Interstitial ad available, showing ad then game over popup");
                                         // Store final score and level for showing game over popup after ad closes
                                         window.pendingGameOverPopup = {
                                             score: finalScore,
@@ -1080,11 +1071,12 @@ var PACMAN = (function () {
                                         showAd();
                                         // Note: Game over popup will be shown after ad closes via adClosed event listener
                                     } else {
-                                        console.log("Pacman: Interstitial ad not available, showing gameover popup");
-                                        // Show gameover popup even if ad not available
+                                        // No ads available - show game over popup immediately after skip
+                                        console.log("Pacman: Interstitial ad not available, showing gameover popup immediately after skip");
                                         try {
                                             if (window.showGameOverOverlay) {
                                                 window.showGameOverOverlay({score: finalScore, level: finalLevel});
+                                                console.log("Pacman: Game over popup shown after RV skip (no ads)");
                                             }
                                         } catch(e) {
                                             console.log("Pacman: Error showing game over overlay", e);
@@ -1099,28 +1091,34 @@ var PACMAN = (function () {
                             } else {
                                 if (window.isAdReady === true) {
                                     showAd();
+                                } else {
+                                    // No ads - show game over popup
+                                    try {
+                                        if (window.showGameOverOverlay) {
+                                            window.showGameOverOverlay({score: finalScore, level: finalLevel});
+                                        }
+                                    } catch(e) {
+                                        console.log("Pacman: Error showing game over overlay", e);
+                                    }
                                 }
                             }
                         }
                     } else {
-                        // RV video not available OR already used - show interstitial ad if available
-                        // Game over popup is already shown above, will remain visible after ads close
-                        console.log("Pacman: RV video not available or already used, checking interstitial ad");
+                        // RV video not available OR already used - show game over popup immediately
+                        console.log("Pacman: RV video not available or already used, showing game over popup");
                         console.log("Pacman: isRVReady:", window.isRVReady, "rvVideoUsedOnce:", window.rvVideoUsedOnce);
                         
-                        // Ensure popup is visible (in case it was hidden)
-                        if (window.currentGameOverData) {
-                            try {
-                                if (window.showGameOverOverlay) {
-                                    window.showGameOverOverlay({
-                                        score: window.currentGameOverData.score,
-                                        level: window.currentGameOverData.level
-                                    });
-                                    console.log("Pacman: Game over popup ensured visible (RV not available)");
-                                }
-                            } catch(e) {
-                                console.log("Pacman: Error ensuring game over popup visible", e);
+                        // Show game over popup immediately (RV not available)
+                        try {
+                            if (window.showGameOverOverlay) {
+                                window.showGameOverOverlay({
+                                    score: finalScore,
+                                    level: finalLevel
+                                });
+                                console.log("Pacman: Game over popup shown (RV not available)");
                             }
+                        } catch(e) {
+                            console.log("Pacman: Error showing game over popup", e);
                         }
                         
                         if (window.isAdReady === true) {
