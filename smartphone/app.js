@@ -830,48 +830,18 @@ var PACMAN = (function () {
         timerStart = tick;
         setState(COUNTDOWN);
         
-        // Cache ads when level starts (only for levels > 1, level 1 already cached in startNewGame)
-        // Only cache once per level - check if this level has already been cached
-        // Skip caching if called from extra life (same level continuation)
-        if (level > 1 && !window.skipLevelCaching) {
-            try {
-                // Initialize level caching tracker if not exists
-                if (!window.levelCachingTracker) {
-                    window.levelCachingTracker = {};
-                }
-                
-                // Check if this level has already been cached
-                var levelKey = 'level_' + level;
-                if (!window.levelCachingTracker[levelKey]) {
-                    // This level hasn't been cached yet - cache it
-                    if (!window.isCachingAds) {
-                        window.isCachingAds = true;
-                        window.levelCachingTracker[levelKey] = true; // Mark this level as cached
-                        gameCacheAd();
-                        console.log("Pacman: Ads caching at level " + level + " start (first time for this level)");
-                        // Reset isCachingAds flag after caching completes
-                        setTimeout(function() {
-                            window.isCachingAds = false;
-                        }, 10000); // Reset after 10 seconds
-                    } else {
-                        console.log("Pacman: Ads already caching, skipping duplicate call on level start");
-                    }
-                } else {
-                    console.log("Pacman: Level " + level + " already cached in this session, skipping");
-                }
-            } catch(e) { 
-                console.log(e);
-                window.isCachingAds = false; // Reset on error
-            }
-        } else if (window.skipLevelCaching) {
-            console.log("Pacman: Skipping level caching - extra life continuation (same level)");
-        }
+        // Note: Ads caching happens in completedLevel() when level completes automatically
+        // No caching here - caching only on game start (startNewGame) and level complete (completedLevel)
     }    
 
     function startNewGame() {
         console.log("Pacman: Starting new game");
         // Clear game over flag - allow game to start
         window.isGameOver = false;
+        // Reset caching flags to ensure fresh caching can happen
+        if (typeof window.resetCachingFlags === 'function') {
+            window.resetCachingFlags();
+        }
         // Don't reset gameStartCachingDone here - it should be reset only when button is clicked
         // This ensures caching happens only once per button click, not multiple times if startNewGame is called multiple times
         // Reset RV video flags for new game session (allow RV to be cached and shown once per new game)
@@ -895,29 +865,13 @@ var PACMAN = (function () {
         map.reset();
         map.draw(ctx);
         
-        // Cache ads at game start (mid-roll + rewarded) - only once per game start
-        // Use session flag to prevent multiple caching on level 1
+        // Cache ads at game start (mid-roll + rewarded)
+        // gameCacheAd() has its own protection mechanisms, so just call it directly
         try {
-            // Prevent multiple calls - check if already caching AND if not already cached in this session
-            if (!window.isCachingAds && !window.gameStartCachingDone) {
-                window.isCachingAds = true;
-                window.gameStartCachingDone = true; // Mark that game start caching is done
-                gameCacheAd();
-                console.log("Pacman: Ads caching at game start (mid-roll + rewarded)");
-                // Reset isCachingAds flag after caching completes (but keep gameStartCachingDone)
-                setTimeout(function() {
-                    window.isCachingAds = false;
-                }, 10000); // Reset after 10 seconds
-            } else {
-                if (window.gameStartCachingDone) {
-                    console.log("Pacman: Game start caching already done in this session, skipping");
-                } else {
-                    console.log("Pacman: Ads already caching, skipping duplicate call");
-                }
-            }
+            gameCacheAd();
+            console.log("Pacman: Ads caching at game start (mid-roll + rewarded)");
         } catch(e) { 
-            console.log(e);
-            window.isCachingAds = false; // Reset on error
+            console.log("Pacman: Error caching ads at game start", e);
         }
         
         startLevel();
@@ -1457,8 +1411,16 @@ var PACMAN = (function () {
         map.draw(ctx);
         dialog("🎉 Congratulations! Level " + (level - 1) + " Complete!");
 
-        // No ads during game running - removed ad show from level completion
-        // Caching will happen when next level starts (in startLevel function)
+        // Cache ads immediately when level completes automatically (all dots eaten)
+        // This is equivalent to "Next Level" button click in other games
+        try {
+            if (typeof gameCacheAd === 'function') {
+                gameCacheAd();
+                console.log("Pacman: Level Complete - Ads caching on automatic level change");
+            }
+        } catch(e) {
+            console.log("Pacman: Error caching ads on level complete", e);
+        }
         
         // Start next level after message display
         setTimeout(function() {

@@ -658,6 +658,10 @@
               console.log('Pacman: Play Again button clicked');
               // Reset game start caching flag - allow caching for new game session
               window.gameStartCachingDone = false;
+              // Reset caching flags to allow fresh caching
+              if (typeof resetCachingFlags === 'function') {
+                resetCachingFlags();
+              }
               window.hideGameOverOverlay({hideHome: true});
               gameStartedByUser = true;
               // Clear game over flag to allow game to start
@@ -816,6 +820,10 @@
             console.log('Pacman: Start Game button clicked on home page');
             // Reset game start caching flag - allow caching for new game session
             window.gameStartCachingDone = false;
+            // Reset caching flags to allow fresh caching
+            if (typeof resetCachingFlags === 'function') {
+              resetCachingFlags();
+            }
             // Reset game over flag to allow fresh game start
             window.isGameOver = false;
             // Mark that user has started the game

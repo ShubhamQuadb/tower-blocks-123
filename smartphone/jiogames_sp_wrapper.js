@@ -11,6 +11,23 @@ window.isRVReady = false;
 var banner_ZoneKey = "5abvng4i";
 var bannerPackageName = "com.kaifoundry.pacmanSP";
 
+// Protection flags & cooldowns
+// Prevent duplicate ad caching
+var isCachingAds = false;
+var lastCacheTime = 0;
+var CACHE_COOLDOWN = 2000;  // 2 seconds cooldown between cache requests
+var isCachingMidRoll = false;
+var isCachingRewarded = false;
+var lastMidRollCacheTime = 0;
+var lastRewardedCacheTime = 0;
+
+// Prevent duplicate ad showing
+var isShowingAd = false;
+var isShowingRewarded = false;
+var lastShowAdTime = 0;
+var lastShowRewardedTime = 0;
+var SHOW_AD_COOLDOWN = 3000;  // 3 seconds cooldown between show ad requests
+
 //#endregion
 
 
@@ -32,9 +49,27 @@ function cacheAdMidRoll(adKeyId, source) {
         source? null : (console.log("Jiogames: cacheAdMidRoll() no source to cacheAd ",source));
         return;
     }
+    
+    // Prevent duplicate caching - check if already caching or recently cached
+    var currentTime = Date.now();
+    if (isCachingMidRoll || isAdReady || (currentTime - lastMidRollCacheTime < CACHE_COOLDOWN)) {
+        console.log("JioGames: cacheAdMidRoll skipped - already caching, ready, or recently cached");
+        return;
+    }
+    
+    // Set caching flag and timestamp
+    isCachingMidRoll = true;
+    lastMidRollCacheTime = currentTime;
+    console.log("JioGames: cacheAdMidRoll - Caching midroll ad");
+    
     if (window.DroidHandler) {
         window.DroidHandler.cacheAd(adKeyId, source);
     }
+    
+    // Reset flag after reasonable time (backup safety)
+    setTimeout(function() {
+        isCachingMidRoll = false;
+    }, 10000);
 }
 
 function showAdMidRoll(adKeyId, source) {
@@ -54,9 +89,33 @@ function cacheAdRewardedVideo(adKeyId, source) {
         source ? null : (console.log("Jiogames: cacheAdRewardedVideo() no source to cacheAd ", source));
         return;
     }
-    if (window.DroidHandler) {
-        window.DroidHandler.cacheAdRewarded(adKeyId, source);    
+    
+    // Prevent duplicate caching
+    var currentTime = Date.now();
+    if (isCachingRewarded || isRVReady || (currentTime - lastRewardedCacheTime < CACHE_COOLDOWN)) {
+        console.log("JioGames: cacheAdRewardedVideo skipped - already caching, ready, or recently cached");
+        return;
     }
+    
+    // Also check if RV has been used - don't cache again if already used
+    if (window.rvVideoUsedOnce) {
+        console.log("JioGames: cacheAdRewardedVideo skipped - RV video already used once in this session");
+        return;
+    }
+    
+    // Set caching flag and timestamp
+    isCachingRewarded = true;
+    lastRewardedCacheTime = currentTime;
+    console.log("JioGames: cacheAdRewardedVideo - Caching rewarded ad");
+    
+    if (window.DroidHandler) {
+        window.DroidHandler.cacheAdRewarded(adKeyId, source);
+    }
+    
+    // Reset flag after reasonable time (backup safety)
+    setTimeout(function() {
+        isCachingRewarded = false;
+    }, 10000);
 }
 
 function showAdRewardedVideo(adKeyId, source) {
@@ -80,8 +139,27 @@ function getUserProfile() {
 
 window.onAdPrepared = function (adSpotKey) {
     console.log("JioGames: onAdPrepared "+adSpotKey.toString());
-    adSpotKey == adSpotInterstitial && (isAdReady = true, window.isAdReady = true, console.log("JioGames: onAdPrepared Show Ads " + isAdReady));
-    adSpotKey == adSpotRewardedVideo && (isRVReady = true, window.isRVReady = true, console.log("JioGames: onAdPrepared RewardedVideo " + isRVReady));   
+    
+    if (adSpotKey == adSpotInterstitial) {
+        isAdReady = true;
+        window.isAdReady = true;
+        isCachingMidRoll = false; // Reset caching flag when ad is ready
+        console.log("JioGames: onAdPrepared Show Ads " + isAdReady);
+    }
+    
+    if (adSpotKey == adSpotRewardedVideo) {
+        isRVReady = true;
+        window.isRVReady = true;
+        isCachingRewarded = false; // Reset caching flag when ad is ready
+        console.log("JioGames: onAdPrepared RewardedVideo " + isRVReady);
+    }
+    
+    // Pause music when ad is prepared (about to show)
+    try { 
+        if (window.pauseMusic) window.pauseMusic(); 
+    } catch(e) { 
+        console.warn('JioGames: pauseMusic call failed', e); 
+    }
 };
 
 window.onAdClosed = function (data, pIsVideoCompleted, pIsEligibleForReward) {
@@ -95,15 +173,41 @@ window.onAdClosed = function (data, pIsVideoCompleted, pIsEligibleForReward) {
         isVideoCompleted = Boolean(localData[1].trim());
         isEligibleForReward = Boolean(localData[2].trim());
     }
-    console.log("JioGames: onAdClosed "+data.toString(), "localData "+localData[0]+" "+localData[1]+" "+localData[2]);
+    console.log("JioGames: onAdClosed "+data.toString());
 
-    adSpotKey == adSpotInterstitial && (isAdReady = false, window.isAdReady = false, console.log("JioGames: onAdClose Show Ads " + isAdReady));
-    adSpotKey == adSpotRewardedVideo && (isRVReady = false, window.isRVReady = false, console.log("JioGames: onAdClose RewardedVideo " + isRVReady));
+    if (adSpotKey == adSpotInterstitial) {
+        isAdReady = false;
+        window.isAdReady = false;
+        isCachingMidRoll = false; // Reset caching flag when ad is closed
+        isShowingAd = false; // Reset showing flag when ad is closed
+        console.log("JioGames: onAdClose Show Ads " + isAdReady);
+        
+        // ⚠️ DO NOT re-cache ads here - only cache on explicit button clicks
+    }
+    
+    if (adSpotKey == adSpotRewardedVideo) {
+        isRVReady = false;
+        window.isRVReady = false;
+        isCachingRewarded = false; // Reset caching flag when ad is closed
+        isShowingRewarded = false; // Reset showing flag when ad is closed
+        console.log("JioGames: onAdClose RewardedVideo " + isRVReady);
+        
+        // ⚠️ DO NOT re-cache ads here - only cache on explicit button clicks
+    }
 
+    // Grant reward if eligible
     if (adSpotKey == adSpotRewardedVideo && isEligibleForReward) {
         GratifyReward();
-    }    
-    // No caching on ad close - caching only happens on start game and play again
+    }
+    
+    // Resume music when ad closes
+    try { 
+        if (window.resumeMusic) window.resumeMusic(); 
+    } catch(e) { 
+        console.warn('JioGames: resumeMusic call failed', e); 
+    }
+    
+    // Dispatch adClosed event for game logic
     try {
         window.dispatchEvent(new CustomEvent('adClosed', { detail: { placement: adSpotKey } }));
     } catch(evtErr) {
@@ -121,10 +225,24 @@ window.onAdFailedToLoad = function (data, pDescription){
         description = localData[1].trim();
     }
 
-    console.log("JioGames: onAdFailedToLoad "+data.toString()+" localData "+localData[0]+" "+localData[1]);
+    console.log("JioGames: onAdFailedToLoad "+data.toString());
     
-    adSpotKey == adSpotInterstitial && (isAdReady = false, window.isAdReady = false, console.log("JioGames: onAdFailedToLoad Show Ads " + isAdReady+" description "+description));
-    adSpotKey == adSpotRewardedVideo && (isRVReady = false, window.isRVReady = false, console.log("JioGames: onAdFailedToLoad RewardedVideo " + isRVReady+" description "+description));
+    // Reset flags when ad fails to load
+    if (adSpotKey == adSpotInterstitial) {
+        isAdReady = false;
+        window.isAdReady = false;
+        isCachingMidRoll = false; // Reset caching flag on failure
+        isShowingAd = false; // Reset showing flag on failure
+        console.log("JioGames: onAdFailedToLoad Show Ads " + isAdReady+" description "+description);
+    }
+    
+    if (adSpotKey == adSpotRewardedVideo) {
+        isRVReady = false;
+        window.isRVReady = false;
+        isCachingRewarded = false; // Reset caching flag on failure
+        isShowingRewarded = false; // Reset showing flag on failure
+        console.log("JioGames: onAdFailedToLoad RewardedVideo " + isRVReady+" description "+description);
+    }
 };
 
 
@@ -180,134 +298,192 @@ function GratifyReward() {
 };
 
 function cacheAd() {
-    if (isAdReady) {
+    console.log("JioGames: cacheAd called");
+    if (!isAdReady) {
+        cacheAdMidRoll(adSpotInterstitial, packageName);
+    } else {
         console.log("JioGames: cacheAd skipped - ad already ready (isAdReady=true)");
-        return;
     }
-    console.log("JioGames: cacheAd called - caching show ads");
-    cacheAdMidRoll(adSpotInterstitial, packageName);
 }
 function cacheAdRewarded() {
-    // Only cache RV once per session - check if already cached or used
-    if (isRVReady) {
+    console.log("JioGames: cacheAdRewarded called");
+    if (!isRVReady) {
+        // Only cache RV once per session - check if already cached or used
+        if (window.rvVideoCachedOnce) {
+            console.log("JioGames: cacheAdRewarded skipped - RV video already cached once in this session");
+            return;
+        }
+        // Also check if RV has been used - don't cache again if already used
+        if (window.rvVideoUsedOnce) {
+            console.log("JioGames: cacheAdRewarded skipped - RV video already used once in this session");
+            return;
+        }
+        window.rvVideoCachedOnce = true; // Mark as cached
+        cacheAdRewardedVideo(adSpotRewardedVideo, packageName);
+    } else {
         console.log("JioGames: cacheAdRewarded skipped - rewarded ad already ready (isRVReady=true)");
-        return;
     }
-    if (window.rvVideoCachedOnce) {
-        console.log("JioGames: cacheAdRewarded skipped - RV video already cached once in this session");
-        return;
-    }
-    // Also check if RV has been used - don't cache again if already used
-    if (window.rvVideoUsedOnce) {
-        console.log("JioGames: cacheAdRewarded skipped - RV video already used once in this session");
-        return;
-    }
-    console.log("JioGames: cacheAdRewarded called - caching rewarded ad");
-    window.rvVideoCachedOnce = true; // Mark as cached
-    cacheAdRewardedVideo(adSpotRewardedVideo, packageName);
 }
 function showAd() {
-    console.log("JioGames: showAd called");
+    console.log("JioGames: showAd (Show Ads) called. isAdReady=", isAdReady);
     
-    // Pause game and audio when ad is shown
-    try {
-        // Fire P key to pause game
-        if (typeof document !== 'undefined') {
-            var pauseEvent = new KeyboardEvent('keydown', {
-                bubbles: true,
-                cancelable: true,
-                keyCode: 80,
-                which: 80
-            });
-            Object.defineProperty(pauseEvent, 'keyCode', {get: function(){return 80;}});
-            Object.defineProperty(pauseEvent, 'which', {get: function(){return 80;}});
-            document.dispatchEvent(pauseEvent);
-        }
-        // Pause all audio
-        var allAudio = document.querySelectorAll('audio');
-        for (var i = 0; i < allAudio.length; i++) {
-            if (allAudio[i] && !allAudio[i].paused) {
-                allAudio[i].pause();
-            }
-        }
-        console.log("JioGames: Game and audio paused - ad shown");
-    } catch(e) {
-        console.log("JioGames: Error pausing game/audio on ad show", e);
+    // Prevent duplicate show ad calls
+    var currentTime = Date.now();
+    if (isShowingAd || (currentTime - lastShowAdTime < SHOW_AD_COOLDOWN)) {
+        console.log("JioGames: showAd skipped - already showing or recently shown");
+        return;
     }
     
     if (isAdReady) {
+        // Set showing flag and timestamp
+        isShowingAd = true;
+        lastShowAdTime = currentTime;
+        
+        // Pause game and audio when ad is shown
+        try {
+            // Fire P key to pause game
+            if (typeof document !== 'undefined') {
+                var pauseEvent = new KeyboardEvent('keydown', {
+                    bubbles: true,
+                    cancelable: true,
+                    keyCode: 80,
+                    which: 80
+                });
+                Object.defineProperty(pauseEvent, 'keyCode', {get: function(){return 80;}});
+                Object.defineProperty(pauseEvent, 'which', {get: function(){return 80;}});
+                document.dispatchEvent(pauseEvent);
+            }
+            // Pause all audio
+            var allAudio = document.querySelectorAll('audio');
+            for (var i = 0; i < allAudio.length; i++) {
+                if (allAudio[i] && !allAudio[i].paused) {
+                    allAudio[i].pause();
+                }
+            }
+            console.log("JioGames: Game and audio paused - ad shown");
+        } catch(e) {
+            console.log("JioGames: Error pausing game/audio on ad show", e);
+        }
+        
         try {
             window.dispatchEvent(new CustomEvent('adShown', { detail: { type: 'interstitial' } }));
         } catch(e) {
             console.log('JioGames: Failed to dispatch adShown event', e);
         }
+        
+        console.log("JioGames: calling showAdMidRoll('" + adSpotInterstitial + "', '"+packageName+"')");
         showAdMidRoll(adSpotInterstitial, packageName);
+        
+        // Reset flag after ad should be shown (will also reset in onAdClosed)
+        setTimeout(function() {
+            isShowingAd = false;
+        }, 5000);
+    } else {
+        console.warn("JioGames: showAd skipped - show ads not ready yet. Ensure cacheAd() ran and onAdPrepared fired.");
     }
 }
 function showAdRewarded() {
     console.log("JioGames: showAdRewarded called");
     
-    // Pause game and audio when rewarded ad is shown
-    try {
-        // Fire P key to pause game
-        if (typeof document !== 'undefined') {
-            var pauseEvent = new KeyboardEvent('keydown', {
-                bubbles: true,
-                cancelable: true,
-                keyCode: 80,
-                which: 80
-            });
-            Object.defineProperty(pauseEvent, 'keyCode', {get: function(){return 80;}});
-            Object.defineProperty(pauseEvent, 'which', {get: function(){return 80;}});
-            document.dispatchEvent(pauseEvent);
-        }
-        // Pause all audio
-        var allAudio = document.querySelectorAll('audio');
-        for (var i = 0; i < allAudio.length; i++) {
-            if (allAudio[i] && !allAudio[i].paused) {
-                allAudio[i].pause();
-            }
-        }
-        console.log("JioGames: Game and audio paused - rewarded ad shown");
-    } catch(e) {
-        console.log("JioGames: Error pausing game/audio on rewarded ad show", e);
+    // Prevent duplicate show rewarded ad calls
+    var currentTime = Date.now();
+    if (isShowingRewarded || (currentTime - lastShowRewardedTime < SHOW_AD_COOLDOWN)) {
+        console.log("JioGames: showAdRewarded skipped - already showing or recently shown");
+        return;
     }
     
     if (isRVReady) {
+        // Set showing flag and timestamp
+        isShowingRewarded = true;
+        lastShowRewardedTime = currentTime;
+        
+        // Pause game and audio when rewarded ad is shown
+        try {
+            // Fire P key to pause game
+            if (typeof document !== 'undefined') {
+                var pauseEvent = new KeyboardEvent('keydown', {
+                    bubbles: true,
+                    cancelable: true,
+                    keyCode: 80,
+                    which: 80
+                });
+                Object.defineProperty(pauseEvent, 'keyCode', {get: function(){return 80;}});
+                Object.defineProperty(pauseEvent, 'which', {get: function(){return 80;}});
+                document.dispatchEvent(pauseEvent);
+            }
+            // Pause all audio
+            var allAudio = document.querySelectorAll('audio');
+            for (var i = 0; i < allAudio.length; i++) {
+                if (allAudio[i] && !allAudio[i].paused) {
+                    allAudio[i].pause();
+                }
+            }
+            console.log("JioGames: Game and audio paused - rewarded ad shown");
+        } catch(e) {
+            console.log("JioGames: Error pausing game/audio on rewarded ad show", e);
+        }
+        
         try {
             window.dispatchEvent(new CustomEvent('adShown', { detail: { type: 'rewarded' } }));
         } catch(e) {
             console.log('JioGames: Failed to dispatch rewarded adShown event', e);
         }
+        
         showAdRewardedVideo(adSpotRewardedVideo, packageName);
+        
+        // Reset flag after ad should be shown (will also reset in onAdClosed)
+        setTimeout(function() {
+            isShowingRewarded = false;
+        }, 5000);
         
         /******* CHEAT *******/
 //         window.onAdMediaEnd(adSpotRewardedVideo, true, 1);
 //         window.onAdClosed(adSpotRewardedVideo, true, true);
         /******* CHEAT *******/
+    } else {
+        console.warn("JioGames: showAdRewarded skipped - rewarded ad not ready yet.");
     }
 }
 
+// Reset caching flags - call this when starting a new game session
+function resetCachingFlags() {
+    isCachingAds = false;
+    lastCacheTime = 0;
+    isCachingMidRoll = false;
+    isCachingRewarded = false;
+    lastMidRollCacheTime = 0;
+    lastRewardedCacheTime = 0;
+    console.log("JioGames: Caching flags reset for new game session");
+}
+// Expose globally for use in button handlers
+window.resetCachingFlags = resetCachingFlags;
+
 function gameCacheAd() {
-    console.log("JioGames: gameCacheAd called");
-    
-    // Prevent multiple calls - check if already caching
-    if (window.isCachingAds) {
-        console.log("JioGames: gameCacheAd skipped - already caching ads");
+    // Prevent duplicate caching - check if already caching or recently cached
+    var currentTime = Date.now();
+    // If lastCacheTime is 0, it means flags were reset - allow caching
+    if (isCachingAds || (lastCacheTime > 0 && (currentTime - lastCacheTime < CACHE_COOLDOWN))) {
+        // Only log if not recently cached (to reduce console spam)
+        if (lastCacheTime === 0 || currentTime - lastCacheTime >= CACHE_COOLDOWN - 1000) {
+            console.log("JioGames: gameCacheAd skipped - already caching or recently cached. isCachingAds:", isCachingAds, "lastCacheTime:", lastCacheTime, "timeDiff:", lastCacheTime > 0 ? (currentTime - lastCacheTime) : "N/A");
+        }
         return;
     }
     
-    // Cache interstitial ad
-    cacheAd();
+    // Set caching flag and timestamp
+    isCachingAds = true;
+    lastCacheTime = currentTime;
     
-    // Cache RV video only if not already cached or used
+    console.log("JioGames: gameCacheAd - Starting ad cache (midroll + rewarded)");
+    cacheAd();  // Cache midroll ad immediately
+    
+    // Cache rewarded ad after 5 seconds delay
     setTimeout(function(){
-        // Double check - RV should only be cached once per session
-        if (!window.rvVideoCachedOnce && !window.rvVideoUsedOnce) {
-            cacheAdRewarded();
-        } else {
-            console.log("JioGames: gameCacheAd - skipping RV cache (already cached or used)");
-        }
+        cacheAdRewarded();
+        // Reset caching flag after both ads are requested
+        setTimeout(function() {
+            isCachingAds = false;
+        }, 6000); // Reset after 6 seconds (5s delay + 1s buffer)
     }, 5000);
 }
 
@@ -449,3 +625,4 @@ function callback_Banner(){
         console.log ("JioGames: onAdDuration "+placementId);
     };
 }
+
