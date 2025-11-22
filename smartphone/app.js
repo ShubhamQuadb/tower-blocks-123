@@ -1414,13 +1414,21 @@ var PACMAN = (function () {
         // Cache ads immediately when level completes automatically (all dots eaten)
         // This is equivalent to "Next Level" button click in other games
         // BUT: Don't cache if we just got extra life from RV video (skip caching after RV)
+        // Check multiple conditions to prevent caching after RV video
         try {
-            if (!window.skipCachingAfterRV && typeof gameCacheAd === 'function') {
+            var shouldSkipCaching = window.skipCachingAfterRV || window.continuingFromRV;
+            if (!shouldSkipCaching && typeof gameCacheAd === 'function') {
                 gameCacheAd();
                 console.log("Pacman: Level Complete - Ads caching on automatic level change");
-            } else if (window.skipCachingAfterRV) {
-                console.log("Pacman: Skipping caching after RV video extra life");
-                window.skipCachingAfterRV = false; // Reset flag after skipping once
+            } else {
+                if (window.skipCachingAfterRV || window.continuingFromRV) {
+                    console.log("Pacman: Skipping caching after RV video extra life - continuingFromRV:", window.continuingFromRV, "skipCachingAfterRV:", window.skipCachingAfterRV);
+                    // Reset continuingFromRV flag when level completes (so next level can cache)
+                    if (window.continuingFromRV) {
+                        window.continuingFromRV = false;
+                        console.log("Pacman: continuingFromRV flag reset - next level completion will cache normally");
+                    }
+                }
             }
         } catch(e) {
             console.log("Pacman: Error caching ads on level complete", e);
@@ -1574,6 +1582,9 @@ var PACMAN = (function () {
         // This prevents caching when game continues after extra life
         window.skipCachingAfterRV = true;
         
+        // Also mark that we're continuing from RV video - this will prevent caching on level completion
+        window.continuingFromRV = true;
+        
         // Restore saved game state (score and level) for continuation
         if (window.savedGameState) {
             var savedState = window.savedGameState;
@@ -1626,12 +1637,13 @@ var PACMAN = (function () {
             // Clear saved state after continuation starts
             window.savedGameState = null;
             
-            // Reset skipCachingAfterRV flag after a delay (in case level completes quickly)
-            // This allows caching on next level completion, but not immediately after RV
+            // Reset flags after a delay - only allow caching on NEXT level completion (not current level)
+            // This ensures that if user completes the same level quickly after RV, no caching happens
             setTimeout(function() {
                 window.skipCachingAfterRV = false;
-                console.log("Pacman: skipCachingAfterRV flag reset - caching allowed on next level complete");
-            }, 5000); // Reset after 5 seconds
+                window.continuingFromRV = false; // Reset after level completes or after delay
+                console.log("Pacman: skipCachingAfterRV and continuingFromRV flags reset - caching allowed on next level complete");
+            }, 10000); // Reset after 10 seconds (enough time for level to complete)
         }
     };
     
