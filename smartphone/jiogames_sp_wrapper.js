@@ -50,6 +50,12 @@ function cacheAdMidRoll(adKeyId, source) {
         return;
     }
     
+    // CRITICAL: Don't cache if we're in the middle of RV video reward flow
+    if (window.skipCachingAfterRV || window.continuingFromRV) {
+        console.log("JioGames: cacheAdMidRoll BLOCKED - RV video reward flow active. skipCachingAfterRV:", window.skipCachingAfterRV, "continuingFromRV:", window.continuingFromRV);
+        return;
+    }
+    
     // Prevent duplicate caching - check if already caching or recently cached
     var currentTime = Date.now();
     if (isCachingMidRoll || isAdReady || (currentTime - lastMidRollCacheTime < CACHE_COOLDOWN)) {
@@ -87,6 +93,12 @@ function cacheAdRewardedVideo(adKeyId, source) {
     if (!adKeyId || !source) {
         adKeyId ? null : (console.log("Jiogames: cacheAdRewardedVideo() no adKeyId to cacheAd ", adKeyId));
         source ? null : (console.log("Jiogames: cacheAdRewardedVideo() no source to cacheAd ", source));
+        return;
+    }
+    
+    // CRITICAL: Don't cache if we're in the middle of RV video reward flow
+    if (window.skipCachingAfterRV || window.continuingFromRV) {
+        console.log("JioGames: cacheAdRewardedVideo BLOCKED - RV video reward flow active. skipCachingAfterRV:", window.skipCachingAfterRV, "continuingFromRV:", window.continuingFromRV);
         return;
     }
     
@@ -305,6 +317,13 @@ function GratifyReward() {
 
 function cacheAd() {
     console.log("JioGames: cacheAd called");
+    
+    // CRITICAL: Don't cache if we're in the middle of RV video reward flow
+    if (window.skipCachingAfterRV || window.continuingFromRV) {
+        console.log("JioGames: cacheAd BLOCKED - RV video reward flow active. skipCachingAfterRV:", window.skipCachingAfterRV, "continuingFromRV:", window.continuingFromRV);
+        return;
+    }
+    
     if (!isAdReady) {
         cacheAdMidRoll(adSpotInterstitial, packageName);
     } else {
@@ -313,6 +332,13 @@ function cacheAd() {
 }
 function cacheAdRewarded() {
     console.log("JioGames: cacheAdRewarded called");
+    
+    // CRITICAL: Don't cache if we're in the middle of RV video reward flow
+    if (window.skipCachingAfterRV || window.continuingFromRV) {
+        console.log("JioGames: cacheAdRewarded BLOCKED - RV video reward flow active. skipCachingAfterRV:", window.skipCachingAfterRV, "continuingFromRV:", window.continuingFromRV);
+        return;
+    }
+    
     if (!isRVReady) {
         // Only cache RV once per session - check if already cached or used
         if (window.rvVideoCachedOnce) {
@@ -491,11 +517,19 @@ function gameCacheAd() {
     lastCacheTime = currentTime;
     
     console.log("JioGames: gameCacheAd - Starting ad cache (midroll + rewarded)");
-    cacheAd();  // Cache midroll ad immediately
+    cacheAd();  // Cache midroll ad immediately (has RV flag check)
     
     // Cache rewarded ad after 5 seconds delay
+    // IMPORTANT: Check flags again in setTimeout - flags might be set during the delay
     setTimeout(function(){
-        cacheAdRewarded();
+        // Double-check flags before caching rewarded ad
+        if (window.skipCachingAfterRV || window.continuingFromRV) {
+            console.log("JioGames: cacheAdRewarded BLOCKED in setTimeout - RV video reward flow active. skipCachingAfterRV:", window.skipCachingAfterRV, "continuingFromRV:", window.continuingFromRV);
+            // Reset caching flag even if blocked
+            isCachingAds = false;
+            return;
+        }
+        cacheAdRewarded(); // Has RV flag check, but double-check here too
         // Reset caching flag after both ads are requested
         setTimeout(function() {
             isCachingAds = false;
