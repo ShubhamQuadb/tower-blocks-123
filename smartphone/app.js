@@ -872,8 +872,8 @@ var PACMAN = (function () {
         console.log("Pacman: Starting new game");
         // Clear game over flag - allow game to start
         window.isGameOver = false;
-        // Reset game start caching flag for new game session
-        window.gameStartCachingDone = false;
+        // Don't reset gameStartCachingDone here - it should be reset only when button is clicked
+        // This ensures caching happens only once per button click, not multiple times if startNewGame is called multiple times
         // Reset RV video flags for new game session (allow RV to be cached and shown once per new game)
         window.rvVideoCachedOnce = false;
         window.rvVideoUsedOnce = false;

@@ -656,6 +656,8 @@
           if (btnPlayAgain) {
             btnPlayAgain.addEventListener('click', function(){
               console.log('Pacman: Play Again button clicked');
+              // Reset game start caching flag - allow caching for new game session
+              window.gameStartCachingDone = false;
               window.hideGameOverOverlay({hideHome: true});
               gameStartedByUser = true;
               // Clear game over flag to allow game to start
@@ -812,6 +814,8 @@
             e.stopPropagation();
             
             console.log('Pacman: Start Game button clicked on home page');
+            // Reset game start caching flag - allow caching for new game session
+            window.gameStartCachingDone = false;
             // Reset game over flag to allow fresh game start
             window.isGameOver = false;
             // Mark that user has started the game
