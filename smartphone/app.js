@@ -867,9 +867,14 @@ var PACMAN = (function () {
         
         // Cache ads at game start (mid-roll + rewarded)
         // gameCacheAd() has its own protection mechanisms, so just call it directly
+        // But check flags first to ensure we're not in RV flow
         try {
-            gameCacheAd();
-            console.log("Pacman: Ads caching at game start (mid-roll + rewarded)");
+            if (window.skipCachingAfterRV || window.continuingFromRV) {
+                console.log("Pacman: Skipping caching at game start - RV flow active. skipCachingAfterRV:", window.skipCachingAfterRV, "continuingFromRV:", window.continuingFromRV);
+            } else {
+                gameCacheAd();
+                console.log("Pacman: Ads caching at game start (mid-roll + rewarded)");
+            }
         } catch(e) { 
             console.log("Pacman: Error caching ads at game start", e);
         }
@@ -1423,12 +1428,15 @@ var PACMAN = (function () {
             } else {
                 if (window.skipCachingAfterRV || window.continuingFromRV) {
                     console.log("Pacman: Skipping caching after RV video extra life - continuingFromRV:", window.continuingFromRV, "skipCachingAfterRV:", window.skipCachingAfterRV);
-                    // Reset continuingFromRV flag when level completes (so next level can cache)
-                    if (window.continuingFromRV) {
-                        window.continuingFromRV = false;
-                        console.log("Pacman: continuingFromRV flag reset - next level completion will cache normally");
-                    }
                 }
+            }
+            
+            // Reset flags when level completes - this allows caching on NEXT level completion
+            // If we completed the same level after RV, reset flags so next level can cache
+            if (window.continuingFromRV || window.skipCachingAfterRV) {
+                window.continuingFromRV = false;
+                window.skipCachingAfterRV = false;
+                console.log("Pacman: Reset RV flags on level complete - next level completion will cache normally");
             }
         } catch(e) {
             console.log("Pacman: Error caching ads on level complete", e);
@@ -1578,12 +1586,11 @@ var PACMAN = (function () {
     window.giveRewardExtraLife = function() {
         console.log("Pacman: Granting reward - Extra life!");
         
-        // Set flag to prevent caching immediately after RV video closes
-        // This prevents caching when game continues after extra life
+        // CRITICAL: Set flags IMMEDIATELY to prevent ANY caching after RV video
+        // Set these flags BEFORE any other operations to ensure they're active
         window.skipCachingAfterRV = true;
-        
-        // Also mark that we're continuing from RV video - this will prevent caching on level completion
         window.continuingFromRV = true;
+        console.log("Pacman: Set skipCachingAfterRV and continuingFromRV flags to prevent caching after RV video");
         
         // Restore saved game state (score and level) for continuation
         if (window.savedGameState) {
@@ -1637,13 +1644,10 @@ var PACMAN = (function () {
             // Clear saved state after continuation starts
             window.savedGameState = null;
             
-            // Reset flags after a delay - only allow caching on NEXT level completion (not current level)
-            // This ensures that if user completes the same level quickly after RV, no caching happens
-            setTimeout(function() {
-                window.skipCachingAfterRV = false;
-                window.continuingFromRV = false; // Reset after level completes or after delay
-                console.log("Pacman: skipCachingAfterRV and continuingFromRV flags reset - caching allowed on next level complete");
-            }, 10000); // Reset after 10 seconds (enough time for level to complete)
+            // Reset flags ONLY when next level actually starts (not on timeout)
+            // Keep flags active until user completes the current level and moves to next level
+            // This ensures no caching happens on the same level after RV video
+            // Flags will be reset in completedLevel() when level actually completes
         }
     };
     

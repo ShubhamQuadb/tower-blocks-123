@@ -192,6 +192,12 @@ window.onAdClosed = function (data, pIsVideoCompleted, pIsEligibleForReward) {
         isShowingRewarded = false; // Reset showing flag when ad is closed
         console.log("JioGames: onAdClose RewardedVideo " + isRVReady);
         
+        // CRITICAL: Set flags IMMEDIATELY when RV video closes to prevent any caching
+        // Set these BEFORE calling GratifyReward() to ensure they're active
+        window.skipCachingAfterRV = true;
+        window.continuingFromRV = true;
+        console.log("JioGames: Set skipCachingAfterRV and continuingFromRV flags when RV video closes");
+        
         // ⚠️ DO NOT re-cache ads here - only cache on explicit button clicks
     }
 
@@ -459,6 +465,16 @@ function resetCachingFlags() {
 window.resetCachingFlags = resetCachingFlags;
 
 function gameCacheAd() {
+    // CRITICAL: Don't cache if we're in the middle of RV video reward flow
+    // Check if we're continuing from RV video - if yes, skip caching completely
+    if (window.skipCachingAfterRV || window.continuingFromRV) {
+        console.log("JioGames: gameCacheAd BLOCKED - RV video reward flow active. skipCachingAfterRV:", window.skipCachingAfterRV, "continuingFromRV:", window.continuingFromRV);
+        console.trace("JioGames: gameCacheAd call stack trace (RV flow active)");
+        return;
+    }
+    
+    console.log("JioGames: gameCacheAd called - checking if caching is allowed...");
+    
     // Prevent duplicate caching - check if already caching or recently cached
     var currentTime = Date.now();
     // If lastCacheTime is 0, it means flags were reset - allow caching
