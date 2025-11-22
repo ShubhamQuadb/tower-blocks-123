@@ -662,6 +662,10 @@
               if (typeof resetCachingFlags === 'function') {
                 resetCachingFlags();
               }
+              // Reset RV flags to allow caching on new game start
+              window.skipCachingAfterRV = false;
+              window.continuingFromRV = false;
+              console.log('Pacman: Reset RV flags on Play Again - caching will happen');
               window.hideGameOverOverlay({hideHome: true});
               gameStartedByUser = true;
               // Clear game over flag to allow game to start
@@ -824,6 +828,10 @@
             if (typeof resetCachingFlags === 'function') {
               resetCachingFlags();
             }
+            // Reset RV flags to allow caching on new game start
+            window.skipCachingAfterRV = false;
+            window.continuingFromRV = false;
+            console.log('Pacman: Reset RV flags on Start Game - caching will happen');
             // Reset game over flag to allow fresh game start
             window.isGameOver = false;
             // Mark that user has started the game
