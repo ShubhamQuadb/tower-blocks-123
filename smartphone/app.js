@@ -1413,10 +1413,14 @@ var PACMAN = (function () {
 
         // Cache ads immediately when level completes automatically (all dots eaten)
         // This is equivalent to "Next Level" button click in other games
+        // BUT: Don't cache if we just got extra life from RV video (skip caching after RV)
         try {
-            if (typeof gameCacheAd === 'function') {
+            if (!window.skipCachingAfterRV && typeof gameCacheAd === 'function') {
                 gameCacheAd();
                 console.log("Pacman: Level Complete - Ads caching on automatic level change");
+            } else if (window.skipCachingAfterRV) {
+                console.log("Pacman: Skipping caching after RV video extra life");
+                window.skipCachingAfterRV = false; // Reset flag after skipping once
             }
         } catch(e) {
             console.log("Pacman: Error caching ads on level complete", e);
@@ -1566,6 +1570,10 @@ var PACMAN = (function () {
     window.giveRewardExtraLife = function() {
         console.log("Pacman: Granting reward - Extra life!");
         
+        // Set flag to prevent caching immediately after RV video closes
+        // This prevents caching when game continues after extra life
+        window.skipCachingAfterRV = true;
+        
         // Restore saved game state (score and level) for continuation
         if (window.savedGameState) {
             var savedState = window.savedGameState;
@@ -1617,6 +1625,13 @@ var PACMAN = (function () {
             
             // Clear saved state after continuation starts
             window.savedGameState = null;
+            
+            // Reset skipCachingAfterRV flag after a delay (in case level completes quickly)
+            // This allows caching on next level completion, but not immediately after RV
+            setTimeout(function() {
+                window.skipCachingAfterRV = false;
+                console.log("Pacman: skipCachingAfterRV flag reset - caching allowed on next level complete");
+            }, 5000); // Reset after 5 seconds
         }
     };
     
