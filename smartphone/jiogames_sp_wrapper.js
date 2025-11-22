@@ -290,10 +290,25 @@ function showAdRewarded() {
 
 function gameCacheAd() {
     console.log("JioGames: gameCacheAd called");
+    
+    // Prevent multiple calls - check if already caching
+    if (window.isCachingAds) {
+        console.log("JioGames: gameCacheAd skipped - already caching ads");
+        return;
+    }
+    
+    // Cache interstitial ad
     cacheAd();
-	setTimeout(function(){
-		cacheAdRewarded();
-	}, 5000);
+    
+    // Cache RV video only if not already cached or used
+    setTimeout(function(){
+        // Double check - RV should only be cached once per session
+        if (!window.rvVideoCachedOnce && !window.rvVideoUsedOnce) {
+            cacheAdRewarded();
+        } else {
+            console.log("JioGames: gameCacheAd - skipping RV cache (already cached or used)");
+        }
+    }, 5000);
 }
 
 

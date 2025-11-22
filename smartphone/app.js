@@ -832,7 +832,8 @@ var PACMAN = (function () {
         
         // Cache ads when level starts (only for levels > 1, level 1 already cached in startNewGame)
         // Only cache once per level - check if this level has already been cached
-        if (level > 1) {
+        // Skip caching if called from extra life (same level continuation)
+        if (level > 1 && !window.skipLevelCaching) {
             try {
                 // Initialize level caching tracker if not exists
                 if (!window.levelCachingTracker) {
@@ -862,6 +863,8 @@ var PACMAN = (function () {
                 console.log(e);
                 window.isCachingAds = false; // Reset on error
             }
+        } else if (window.skipLevelCaching) {
+            console.log("Pacman: Skipping level caching - extra life continuation (same level)");
         }
     }    
 
@@ -1640,7 +1643,14 @@ var PACMAN = (function () {
             }
             
             // Start level immediately - no delay, no game over popup
+            // Don't cache ads when continuing from extra life (same level, already cached)
+            // Pass a flag to prevent caching
+            window.skipLevelCaching = true;
             startLevel(); // Continue playing from same level
+            // Reset flag after startLevel is called
+            setTimeout(function() {
+                window.skipLevelCaching = false;
+            }, 100);
             dialog("🎉 Extra Life! Continue playing!");
             
             // Clear saved state after continuation starts
