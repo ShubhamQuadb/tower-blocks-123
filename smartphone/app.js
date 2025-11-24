@@ -1520,6 +1520,7 @@ var PACMAN = (function () {
             if (canShowAdBeforeNextLevel) {
                 console.log("Pacman: Showing interstitial ad before starting next level");
                 try {
+                    window.skipPauseKeyOnNextAd = true;
                     showAd();
                     window.pendingNextLevelStartTimeout = setTimeout(function() {
                         if (typeof window.pendingNextLevelStart === 'function') {
@@ -1532,6 +1533,7 @@ var PACMAN = (function () {
                     }, 10000); // 10 second fallback
                 } catch (showErr) {
                     console.log("Pacman: Failed to show ad before next level, starting immediately", showErr);
+                    window.skipPauseKeyOnNextAd = false;
                     if (window.pendingNextLevelStart) {
                         var fallbackStart = window.pendingNextLevelStart;
                         window.pendingNextLevelStart = null;
@@ -1546,6 +1548,7 @@ var PACMAN = (function () {
                 }
             } else {
                 console.log("Pacman: Ad not ready before next level, starting immediately");
+                window.skipPauseKeyOnNextAd = false;
                 // Clear pending handler before running immediately
                 if (window.pendingNextLevelStart) {
                     var immediateStart = window.pendingNextLevelStart;

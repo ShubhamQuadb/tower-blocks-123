@@ -379,8 +379,12 @@ function showAd() {
         
         // Pause game and audio when ad is shown
         try {
-            // Fire P key to pause game
-            if (typeof document !== 'undefined') {
+            var suppressPauseKey = window.skipPauseKeyOnNextAd === true;
+            if (suppressPauseKey) {
+                console.log("JioGames: Skipping pause key dispatch for ad (flag active)");
+                window.skipPauseKeyOnNextAd = false;
+            } else if (typeof document !== 'undefined') {
+                // Fire P key to pause game (default behavior)
                 var pauseEvent = new KeyboardEvent('keydown', {
                     bubbles: true,
                     cancelable: true,
