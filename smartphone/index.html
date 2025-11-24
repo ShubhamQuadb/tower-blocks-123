@@ -1016,9 +1016,15 @@
           var isProcessingClick = false; // Debounce flag
           
           function forcePause(reason) {
-            if (typeof window !== 'undefined' && window.skipPauseKeyOnNextAd) {
-              console.log('Pacman: forcePause skipped (' + reason + ') - ad pause flag active');
-              return;
+            if (typeof window !== 'undefined') {
+              if (window.skipPauseKeyOnNextAd) {
+                console.log('Pacman: forcePause skipped (' + reason + ') - ad pause flag active');
+                return;
+              }
+              if (window.isNextLevelPromptVisible) {
+                console.log('Pacman: forcePause skipped (' + reason + ') - next level prompt active');
+                return;
+              }
             }
             if (currentGameState === 'PLAYING' || currentGameState === 'COUNTDOWN') {
               console.log('Pacman: ' + reason + ' - auto pausing via P key');

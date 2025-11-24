@@ -1544,26 +1544,7 @@ var PACMAN = (function () {
                 startLevel();
             }
 
-            function showNextLevelPopup() {
-                var popupScore = (user && typeof user.theScore === 'function') ? user.theScore() : 0;
-                var popupLevel = level;
-                try {
-                    if (typeof window !== "undefined") {
-                        if (typeof window.pendingNextLevelLevel === "number") {
-                            popupLevel = window.pendingNextLevelLevel;
-                        }
-                        if (typeof window.pendingNextLevelScore === "number") {
-                            popupScore = window.pendingNextLevelScore;
-                        }
-                        window.pendingNextLevelLevel = null;
-                        window.pendingNextLevelScore = null;
-                        window.nextLevelPopupPending = false;
-                        window.nextLevelPopupCallback = null;
-                    }
-                } catch(popupErr) {
-                    console.log("Pacman: Error reading pending next level data", popupErr);
-                }
-                
+            function showNextLevelPopup(popupLevel, popupScore) {
                 if (typeof window.showNextLevelPrompt === 'function') {
                     window.showNextLevelPrompt({
                         level: popupLevel,
@@ -1582,20 +1563,16 @@ var PACMAN = (function () {
 
             function handleStartNextLevel() {
                 var adReady = (typeof showAd === 'function') && window.isAdReady === true;
-                if (adReady) {
-                    console.log("Pacman: Showing interstitial ad before starting next level");
-                    if (typeof window !== "undefined") {
-                        window.skipPauseKeyOnNextAd = true;
-                        window.startNextLevelAfterAd = startNextLevelNow;
-                    }
+                if (adReady && typeof window !== "undefined") {
+                    console.log("Pacman: Showing interstitial ad after Start Next Level click");
+                    window.skipPauseKeyOnNextAd = true;
+                    window.startNextLevelAfterAd = startNextLevelNow;
                     try {
                         showAd();
-                    } catch (showErr) {
-                        console.log("Pacman: Failed to show ad before starting next level", showErr);
-                        if (typeof window !== "undefined") {
-                            window.skipPauseKeyOnNextAd = false;
-                            window.startNextLevelAfterAd = null;
-                        }
+                    } catch(adErr) {
+                        console.log("Pacman: Failed to show ad after Start Next Level click", adErr);
+                        window.skipPauseKeyOnNextAd = false;
+                        window.startNextLevelAfterAd = null;
                         startNextLevelNow();
                     }
                 } else {
@@ -1603,7 +1580,33 @@ var PACMAN = (function () {
                 }
             }
 
-            showNextLevelPopup();
+            var popupLevel = level;
+            var popupScore = (user && typeof user.theScore === 'function') ? user.theScore() : 0;
+            var adReady = (typeof showAd === 'function') && window.isAdReady === true;
+
+            if (adReady && typeof window !== "undefined") {
+                console.log("Pacman: Showing interstitial ad before next level popup (per request)");
+                window.skipPauseKeyOnNextAd = true;
+                window.nextLevelPopupPending = true;
+                window.pendingNextLevelLevel = popupLevel;
+                window.pendingNextLevelScore = popupScore;
+                window.nextLevelPopupCallback = function() {
+                    showNextLevelPopup(popupLevel, popupScore);
+                };
+                try {
+                    showAd();
+                } catch (adErr) {
+                    console.log("Pacman: Failed to show ad before next level popup", adErr);
+                    window.skipPauseKeyOnNextAd = false;
+                    window.nextLevelPopupPending = false;
+                    window.nextLevelPopupCallback = null;
+                    window.pendingNextLevelLevel = null;
+                    window.pendingNextLevelScore = null;
+                    showNextLevelPopup(popupLevel, popupScore);
+                }
+            } else {
+                showNextLevelPopup(popupLevel, popupScore);
+            }
         }, 300);
     };
 
@@ -1728,6 +1731,7 @@ var PACMAN = (function () {
                         var popupFn = window.nextLevelPopupCallback;
                         window.nextLevelPopupCallback = null;
                         window.nextLevelPopupPending = false;
+                        window.skipPauseKeyOnNextAd = false;
                         console.log("Pacman: Showing pending next level popup after ad close");
                         try {
                             popupFn();
