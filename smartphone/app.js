@@ -995,9 +995,9 @@ var PACMAN = (function () {
             // Set state to WAITING (this will trigger gameOver event because lives = 0)
             setState(WAITING);
             
-            // Post score
-            postScore(finalScore);
-            console.log("Pacman: Score posted:", finalScore);
+            // Post score will be called only after showAds (interstitial ad) closes, not when RV popup appears
+            // Store score for posting after interstitial ad closes
+            window.pendingPostScore = finalScore;
             
             // Draw game over screen
             map.draw(ctx);
@@ -1052,7 +1052,13 @@ var PACMAN = (function () {
                                         // Note: Game over popup will be shown after ad closes via adClosed event listener
                                     } else {
                                         // No ads available - show game over popup immediately after skip
-                                        console.log("Pacman: Interstitial ad not available, showing gameover popup immediately after skip");
+                                        // Post score since showAds is not available
+                                        if (window.pendingPostScore !== undefined && window.pendingPostScore !== null) {
+                                            var scoreToPost = window.pendingPostScore;
+                                            window.pendingPostScore = null;
+                                            postScore(scoreToPost);
+                                            console.log("Pacman: Score posted after RV skip (no ads available):", scoreToPost);
+                                        }
                                         try {
                                             if (window.showGameOverOverlay) {
                                                 window.showGameOverOverlay({score: finalScore, level: finalLevel});
@@ -1072,6 +1078,13 @@ var PACMAN = (function () {
                                 if (window.isAdReady === true) {
                                     showAd();
                                 } else {
+                                    // No ads - post score since showAds is not available
+                                    if (window.pendingPostScore !== undefined && window.pendingPostScore !== null) {
+                                        var scoreToPost = window.pendingPostScore;
+                                        window.pendingPostScore = null;
+                                        postScore(scoreToPost);
+                                        console.log("Pacman: Score posted (no ads available):", scoreToPost);
+                                    }
                                     // No ads - show game over popup
                                     try {
                                         if (window.showGameOverOverlay) {
@@ -1132,6 +1145,13 @@ var PACMAN = (function () {
                             }, 10000); // 10 second fallback
                         } else {
                             console.log("Pacman: No ads available - ensuring game over popup is visible");
+                            // Post score since showAds is not available
+                            if (window.pendingPostScore !== undefined && window.pendingPostScore !== null) {
+                                var scoreToPost = window.pendingPostScore;
+                                window.pendingPostScore = null;
+                                postScore(scoreToPost);
+                                console.log("Pacman: Score posted (no ads available, RV not available):", scoreToPost);
+                            }
                             // Ensure popup is visible (double check)
                             setTimeout(function() {
                                 if (window.currentGameOverData) {
@@ -1551,6 +1571,14 @@ var PACMAN = (function () {
                                     (placementStr.indexOf("qm19ko74") !== -1 || placementStr === "qm19ko74");
                 
                 if (isInterstitial) {
+                    // Interstitial ad closed - post score now (only after showAds closes)
+                    if (window.pendingPostScore !== undefined && window.pendingPostScore !== null) {
+                        var scoreToPost = window.pendingPostScore;
+                        window.pendingPostScore = null; // Clear after posting
+                        postScore(scoreToPost);
+                        console.log("Pacman: Score posted after interstitial ad closed:", scoreToPost);
+                    }
+                    
                     // Interstitial ad closed - ensure game over popup is visible
                     if (window.pendingGameOverPopup) {
                         var popupData = window.pendingGameOverPopup;

@@ -1015,10 +1015,17 @@
             }
           });
           
-          // Handle game over event - show home + overlay
+          // Handle game over event - don't show home immediately, wait for popup
           window.addEventListener('gameOver', function() {
             console.log('Pacman: Received gameOver event');
-            ensureHomeSceneVisible();
+            // Don't show home screen immediately - it will be shown when game over popup is displayed
+            // This prevents home screen from flashing before popup appears
+            // Hide home screen initially to prevent it from showing before popup
+            if (hs) {
+              hs.style.display = 'none';
+            }
+            document.body.classList.remove('home-visible');
+            document.body.classList.add('game-over');
             gameStartedByUser = false;
             
             var controls = document.querySelector('.controls');
