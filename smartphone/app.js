@@ -1486,17 +1486,53 @@ var PACMAN = (function () {
         setTimeout(function() {
             totalGhostsEaten = 0; // Reset ghost count for new level
             
-            // Recreate ghosts based on current level (Level 1 = 1 ghost, others = 4 ghosts)
-            ghosts = []; // Clear existing ghosts
-            var numGhosts = (level === 1) ? 1 : ghostSpecs.length;
-            for (var i = 0; i < numGhosts; i += 1) {
-                var ghost = new Pacman.Ghost({"getTick":getTick, "getLevel": function() { return level; }}, map, ghostSpecs[i]);
-                ghosts.push(ghost);
+            function startNextLevelNow() {
+                // If this function is still stored globally, clear it before running
+                if (window.pendingNextLevelStart) {
+                    window.pendingNextLevelStart = null;
+                }
+                // Recreate ghosts based on current level (Level 1 = 1 ghost, others = 4 ghosts)
+                ghosts = []; // Clear existing ghosts
+                var numGhosts = (level === 1) ? 1 : ghostSpecs.length;
+                for (var i = 0; i < numGhosts; i += 1) {
+                    var ghost = new Pacman.Ghost({"getTick":getTick, "getLevel": function() { return level; }}, map, ghostSpecs[i]);
+                    ghosts.push(ghost);
+                }
+                
+                map.reset();
+                user.newLevel();
+                startLevel();
             }
             
-            map.reset();
-            user.newLevel();
-            startLevel();
+            // Store pending next-level start handler so adClosed can resume gameplay after ad
+            window.pendingNextLevelStart = startNextLevelNow;
+            
+            var canShowAdBeforeNextLevel = (typeof showAd === 'function') && window.isAdReady === true;
+            if (canShowAdBeforeNextLevel) {
+                console.log("Pacman: Showing interstitial ad before starting next level");
+                try {
+                    showAd();
+                } catch (showErr) {
+                    console.log("Pacman: Failed to show ad before next level, starting immediately", showErr);
+                    if (window.pendingNextLevelStart) {
+                        var fallbackStart = window.pendingNextLevelStart;
+                        window.pendingNextLevelStart = null;
+                        fallbackStart();
+                    } else {
+                        startNextLevelNow();
+                    }
+                }
+            } else {
+                console.log("Pacman: Ad not ready before next level, starting immediately");
+                // Clear pending handler before running immediately
+                if (window.pendingNextLevelStart) {
+                    var immediateStart = window.pendingNextLevelStart;
+                    window.pendingNextLevelStart = null;
+                    immediateStart();
+                } else {
+                    startNextLevelNow();
+                }
+            }
         }, 2000);
     };
 
@@ -1603,6 +1639,18 @@ var PACMAN = (function () {
                         window.pendingPostScore = null; // Clear after posting
                         postScore(scoreToPost);
                         console.log("Pacman: Score posted after interstitial ad closed:", scoreToPost);
+                    }
+                    
+                    // Interstitial ad closed - if we were waiting to start the next level, start it now
+                    if (typeof window.pendingNextLevelStart === 'function') {
+                        var nextLevelStartFn = window.pendingNextLevelStart;
+                        window.pendingNextLevelStart = null;
+                        console.log("Pacman: Starting pending next level after interstitial ad closed");
+                        try {
+                            nextLevelStartFn();
+                        } catch(nextLevelErr) {
+                            console.log("Pacman: Error starting next level after ad close", nextLevelErr);
+                        }
                     }
                     
                     // Interstitial ad closed - ensure game over popup is visible immediately
