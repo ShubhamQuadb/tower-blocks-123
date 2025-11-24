@@ -1484,33 +1484,20 @@ var PACMAN = (function () {
         // BUT: Don't cache if we just got extra life from RV video (skip caching after RV)
         // Check multiple conditions to prevent caching after RV video
         try {
-            // Clear skipGameCachingOnAdClose flag before level change caching (this flag is only for x icon click flow)
+            // Clear skipGameCachingOnAdClose flag (only applies to Back-to-Home flow)
             if (window.skipGameCachingOnAdClose) {
                 window.skipGameCachingOnAdClose = false;
-                console.log("Pacman: Cleared skipGameCachingOnAdClose flag before level change caching");
+                console.log("Pacman: Cleared skipGameCachingOnAdClose flag before next level prompt");
             }
-            
-            var shouldSkipCaching = window.skipCachingAfterRV || window.continuingFromRV;
-            if (!shouldSkipCaching && typeof gameCacheAd === 'function') {
-                gameCacheAd();
-                console.log("Pacman: Level Complete - Ads caching on automatic level change");
-            } else {
-                if (window.skipCachingAfterRV || window.continuingFromRV) {
-                    console.log("Pacman: Skipping caching after RV video extra life - continuingFromRV:", window.continuingFromRV, "skipCachingAfterRV:", window.skipCachingAfterRV);
-                } else if (typeof gameCacheAd !== 'function') {
-                    console.log("Pacman: gameCacheAd function not available");
-                }
-            }
-            
-            // Reset flags when level completes - this allows caching on NEXT level completion
-            // If we completed the same level after RV, reset flags so next level can cache
+
+            // Reset RV flags so the next button-triggered cache isn't blocked
             if (window.continuingFromRV || window.skipCachingAfterRV) {
                 window.continuingFromRV = false;
                 window.skipCachingAfterRV = false;
-                console.log("Pacman: Reset RV flags on level complete - next level completion will cache normally");
+                console.log("Pacman: Reset RV flags on level complete - next level button will cache");
             }
-        } catch(e) {
-            console.log("Pacman: Error caching ads on level complete", e);
+        } catch (e) {
+            console.log("Pacman: Error preparing next level flags", e);
         }
         
         // Start next level after a short celebration display
@@ -1538,8 +1525,7 @@ var PACMAN = (function () {
                 drawFooter();
                 if (typeof window !== "undefined") {
                     window.skipCountdownForNextLevel = true;
-                    window.startNextLevelAfterAd = null;
-                    window.skipPauseKeyOnNextAd = false;
+                    window.lastLevelStartScore = user ? user.theScore() : 0;
                 }
                 try {
                     if (typeof gameCacheAd === "function") {
@@ -1552,42 +1538,49 @@ var PACMAN = (function () {
                 startLevel();
             }
 
-            function handleStartNextLevel() {
-                startNextLevelNow();
-
-                var adReady = (typeof showAd === 'function') && window.isAdReady === true;
-                if (adReady) {
-                    console.log("Pacman: Showing interstitial ad right after next level start");
-                    if (typeof window !== "undefined") {
-                        window.skipPauseKeyOnNextAd = true;
-                    }
-                    try {
-                        showAd();
-                    } catch (showErr) {
-                        console.log("Pacman: Failed to show ad after next level start", showErr);
-                        if (typeof window !== "undefined") {
-                            window.skipPauseKeyOnNextAd = false;
+            function showNextLevelPopup() {
+                var nextLevelScore = (user && typeof user.theScore === 'function') ? user.theScore() : 0;
+                if (typeof window.showNextLevelPrompt === 'function') {
+                    window.showNextLevelPrompt({
+                        level: level,
+                        score: nextLevelScore,
+                        onStart: function() {
+                            if (typeof window.hideNextLevelPrompt === 'function') {
+                                window.hideNextLevelPrompt();
+                            }
+                            startNextLevelNow();
                         }
-                    }
+                    });
+                } else {
+                    startNextLevelNow();
                 }
             }
 
-            var nextLevelScore = (user && typeof user.theScore === 'function') ? user.theScore() : 0;
-            if (typeof window.showNextLevelPrompt === 'function') {
-                window.showNextLevelPrompt({
-                    level: level,
-                    score: nextLevelScore,
-                    onStart: function() {
-                        if (typeof window.hideNextLevelPrompt === 'function') {
-                            window.hideNextLevelPrompt();
-                        }
-                        handleStartNextLevel();
+            var adReady = (typeof showAd === 'function') && window.isAdReady === true;
+            if (adReady) {
+                console.log("Pacman: Showing interstitial ad before next level popup");
+                try {
+                    if (typeof window !== "undefined") {
+                        window.skipPauseKeyOnNextAd = true;
                     }
-                });
+                    showAd();
+                    setTimeout(function() {
+                        if (typeof window !== "undefined") {
+                            window.skipPauseKeyOnNextAd = false;
+                        }
+                        showNextLevelPopup();
+                    }, 600);
+                } catch (showErr) {
+                    console.log("Pacman: Failed to show ad before next level popup", showErr);
+                    if (typeof window !== "undefined") {
+                        window.skipPauseKeyOnNextAd = false;
+                    }
+                    showNextLevelPopup();
+                }
             } else {
-                handleStartNextLevel();
+                showNextLevelPopup();
             }
-        }, 600);
+        }, 300);
     };
 
     function keyPress(e) { 
