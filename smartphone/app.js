@@ -1545,7 +1545,7 @@ var PACMAN = (function () {
             }
 
             function showNextLevelPopup() {
-                var nextLevelScore = (user && typeof user.theScore === 'function') ? user.theScore() : 0;
+                var popupScore = (user && typeof user.theScore === 'function') ? user.theScore() : 0;
                 var popupLevel = level;
                 try {
                     if (typeof window !== "undefined") {
@@ -1553,7 +1553,7 @@ var PACMAN = (function () {
                             popupLevel = window.pendingNextLevelLevel;
                         }
                         if (typeof window.pendingNextLevelScore === "number") {
-                            nextLevelScore = window.pendingNextLevelScore;
+                            popupScore = window.pendingNextLevelScore;
                         }
                         window.pendingNextLevelLevel = null;
                         window.pendingNextLevelScore = null;
@@ -1567,49 +1567,43 @@ var PACMAN = (function () {
                 if (typeof window.showNextLevelPrompt === 'function') {
                     window.showNextLevelPrompt({
                         level: popupLevel,
-                        score: nextLevelScore,
+                        score: popupScore,
                         onStart: function() {
                             if (typeof window.hideNextLevelPrompt === 'function') {
                                 window.hideNextLevelPrompt();
                             }
-                            startNextLevelNow();
+                            handleStartNextLevel();
                         }
                     });
+                } else {
+                    handleStartNextLevel();
+                }
+            }
+
+            function handleStartNextLevel() {
+                var adReady = (typeof showAd === 'function') && window.isAdReady === true;
+                if (adReady) {
+                    console.log("Pacman: Showing interstitial ad before starting next level");
+                    if (typeof window !== "undefined") {
+                        window.skipPauseKeyOnNextAd = true;
+                        window.startNextLevelAfterAd = startNextLevelNow;
+                    }
+                    try {
+                        showAd();
+                    } catch (showErr) {
+                        console.log("Pacman: Failed to show ad before starting next level", showErr);
+                        if (typeof window !== "undefined") {
+                            window.skipPauseKeyOnNextAd = false;
+                            window.startNextLevelAfterAd = null;
+                        }
+                        startNextLevelNow();
+                    }
                 } else {
                     startNextLevelNow();
                 }
             }
 
-            var adReady = (typeof showAd === 'function') && window.isAdReady === true;
-            if (adReady) {
-                console.log("Pacman: Showing interstitial ad before next level popup (delayed)");
-                if (typeof window !== "undefined") {
-                    window.nextLevelPopupPending = true;
-                    window.nextLevelPopupCallback = showNextLevelPopup;
-                    window.pendingNextLevelLevel = level;
-                    window.pendingNextLevelScore = nextLevelScore;
-                }
-                setTimeout(function(){
-                    try {
-                        if (typeof window !== "undefined") {
-                            window.skipPauseKeyOnNextAd = true;
-                        }
-                        showAd();
-                    } catch (showErr) {
-                        console.log("Pacman: Failed to show ad before next level popup", showErr);
-                        if (typeof window !== "undefined") {
-                            window.skipPauseKeyOnNextAd = false;
-                            window.nextLevelPopupPending = false;
-                            window.nextLevelPopupCallback = null;
-                            window.pendingNextLevelLevel = null;
-                            window.pendingNextLevelScore = null;
-                        }
-                        showNextLevelPopup();
-                    }
-                }, window.nextLevelAdDelay || 1200);
-            } else {
-                showNextLevelPopup();
-            }
+            showNextLevelPopup();
         }, 300);
     };
 
