@@ -1540,9 +1540,27 @@ var PACMAN = (function () {
 
             function showNextLevelPopup() {
                 var nextLevelScore = (user && typeof user.theScore === 'function') ? user.theScore() : 0;
+                var popupLevel = level;
+                try {
+                    if (typeof window !== "undefined") {
+                        if (typeof window.pendingNextLevelLevel === "number") {
+                            popupLevel = window.pendingNextLevelLevel;
+                        }
+                        if (typeof window.pendingNextLevelScore === "number") {
+                            nextLevelScore = window.pendingNextLevelScore;
+                        }
+                        window.pendingNextLevelLevel = null;
+                        window.pendingNextLevelScore = null;
+                        window.nextLevelPopupPending = false;
+                        window.nextLevelPopupCallback = null;
+                    }
+                } catch(popupErr) {
+                    console.log("Pacman: Error reading pending next level data", popupErr);
+                }
+                
                 if (typeof window.showNextLevelPrompt === 'function') {
                     window.showNextLevelPrompt({
-                        level: level,
+                        level: popupLevel,
                         score: nextLevelScore,
                         onStart: function() {
                             if (typeof window.hideNextLevelPrompt === 'function') {
@@ -1562,6 +1580,8 @@ var PACMAN = (function () {
                 if (typeof window !== "undefined") {
                     window.nextLevelPopupPending = true;
                     window.nextLevelPopupCallback = showNextLevelPopup;
+                    window.pendingNextLevelLevel = level;
+                    window.pendingNextLevelScore = nextLevelScore;
                 }
                 try {
                     if (typeof window !== "undefined") {
@@ -1574,6 +1594,8 @@ var PACMAN = (function () {
                         window.skipPauseKeyOnNextAd = false;
                         window.nextLevelPopupPending = false;
                         window.nextLevelPopupCallback = null;
+                        window.pendingNextLevelLevel = null;
+                        window.pendingNextLevelScore = null;
                     }
                     showNextLevelPopup();
                 }
