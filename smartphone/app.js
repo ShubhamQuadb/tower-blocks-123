@@ -1559,21 +1559,21 @@ var PACMAN = (function () {
             var adReady = (typeof showAd === 'function') && window.isAdReady === true;
             if (adReady) {
                 console.log("Pacman: Showing interstitial ad before next level popup");
+                if (typeof window !== "undefined") {
+                    window.nextLevelPopupPending = true;
+                    window.nextLevelPopupCallback = showNextLevelPopup;
+                }
                 try {
                     if (typeof window !== "undefined") {
                         window.skipPauseKeyOnNextAd = true;
                     }
                     showAd();
-                    setTimeout(function() {
-                        if (typeof window !== "undefined") {
-                            window.skipPauseKeyOnNextAd = false;
-                        }
-                        showNextLevelPopup();
-                    }, 600);
                 } catch (showErr) {
                     console.log("Pacman: Failed to show ad before next level popup", showErr);
                     if (typeof window !== "undefined") {
                         window.skipPauseKeyOnNextAd = false;
+                        window.nextLevelPopupPending = false;
+                        window.nextLevelPopupCallback = null;
                     }
                     showNextLevelPopup();
                 }
@@ -1697,6 +1697,18 @@ var PACMAN = (function () {
                             nextLevelStartFn();
                         } catch(nextLevelErr) {
                             console.log("Pacman: Error running next level start after ad close", nextLevelErr);
+                        }
+                    }
+                    
+                    if (window.nextLevelPopupCallback) {
+                        var popupFn = window.nextLevelPopupCallback;
+                        window.nextLevelPopupCallback = null;
+                        window.nextLevelPopupPending = false;
+                        console.log("Pacman: Showing pending next level popup after ad close");
+                        try {
+                            popupFn();
+                        } catch(popupErr) {
+                            console.log("Pacman: Error showing next level popup after ad close", popupErr);
                         }
                     }
                     
