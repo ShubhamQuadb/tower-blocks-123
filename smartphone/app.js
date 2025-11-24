@@ -1799,10 +1799,21 @@ var PACMAN = (function () {
             if (map && typeof map.reset === 'function') {
                 map.reset(); // Reset map for fresh start on same level
             }
+            // Recreate ghosts based on the level we're resuming (Level 1 = 1 ghost, others = full roster)
+            try {
+                ghosts = [];
+                var ghostCount = (level === 1) ? 1 : ghostSpecs.length;
+                for (var g = 0; g < ghostCount; g += 1) {
+                    ghosts.push(new Pacman.Ghost({"getTick":getTick, "getLevel": function() { return level; }}, map, ghostSpecs[g]));
+                }
+            } catch(ghostErr) {
+                console.log("Pacman: Error recreating ghosts for RV continuation", ghostErr);
+            }
             if (user && typeof user.newLevel === 'function') {
                 user.newLevel(); // Reset user position but keep score
             }
             map.draw(ctx); // Redraw map
+            drawFooter();
             
             // Ensure game over overlay is hidden (in case it was shown)
             try {
