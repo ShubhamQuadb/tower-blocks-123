@@ -910,17 +910,19 @@ var PACMAN = (function () {
 
     function keyDown(e) {
         try {
-            if (typeof window !== "undefined" && window.isNextLevelPromptVisible) {
-                console.log("Pacman: keyDown ignored - next level prompt visible");
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
-            }
-            if (typeof window !== "undefined" && window.skipPauseKeyOnNextAd) {
-                console.log("Pacman: keyDown ignored - skipPauseKeyOnNextAd active");
-                e.preventDefault();
-                e.stopPropagation();
-                return false;
+            if (typeof window !== "undefined") {
+                if (window.isNextLevelPromptVisible || window.nextLevelPopupPending) {
+                    console.log("Pacman: keyDown ignored - next level prompt/pending popup visible");
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+                if (window.skipPauseKeyOnNextAd) {
+                    console.log("Pacman: keyDown ignored - skipPauseKeyOnNextAd active");
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
             }
         } catch(blockErr) {}
         console.log("Pacman: keyDown called, keyCode:", e.keyCode, "which:", e.which, "current state:", state);

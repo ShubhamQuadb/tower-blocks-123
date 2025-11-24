@@ -1021,8 +1021,8 @@
                 console.log('Pacman: forcePause skipped (' + reason + ') - ad pause flag active');
                 return;
               }
-              if (window.isNextLevelPromptVisible) {
-                console.log('Pacman: forcePause skipped (' + reason + ') - next level prompt active');
+              if (window.isNextLevelPromptVisible || window.nextLevelPopupPending) {
+                console.log('Pacman: forcePause skipped (' + reason + ') - next level prompt/pending');
                 return;
               }
             }
