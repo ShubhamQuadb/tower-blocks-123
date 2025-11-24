@@ -845,7 +845,9 @@ var PACMAN = (function () {
         // Reset RV flags to ensure caching is not blocked
         window.skipCachingAfterRV = false;
         window.continuingFromRV = false;
-        console.log("Pacman: Reset RV flags in startNewGame - caching allowed");
+        // Reset skipCachingOnAdClose flag to ensure caching is not blocked
+        window.skipCachingOnAdClose = false;
+        console.log("Pacman: Reset RV flags and skipCachingOnAdClose in startNewGame - caching allowed");
         // Don't reset gameStartCachingDone here - it should be reset only when button is clicked
         // This ensures caching happens only once per button click, not multiple times if startNewGame is called multiple times
         // Reset RV video flags for new game session (allow RV to be cached and shown once per new game)

@@ -665,7 +665,9 @@
               // Reset RV flags to allow caching on new game start
               window.skipCachingAfterRV = false;
               window.continuingFromRV = false;
-              console.log('Pacman: Reset RV flags on Play Again - caching will happen');
+              // Reset skipCachingOnAdClose flag to allow caching on new game start
+              window.skipCachingOnAdClose = false;
+              console.log('Pacman: Reset RV flags and skipCachingOnAdClose on Play Again - caching will happen');
               window.hideGameOverOverlay({hideHome: true});
               gameStartedByUser = true;
               // Clear game over flag to allow game to start
@@ -831,7 +833,9 @@
             // Reset RV flags to allow caching on new game start
             window.skipCachingAfterRV = false;
             window.continuingFromRV = false;
-            console.log('Pacman: Reset RV flags on Start Game - caching will happen');
+            // Reset skipCachingOnAdClose flag to allow caching on new game start
+            window.skipCachingOnAdClose = false;
+            console.log('Pacman: Reset RV flags and skipCachingOnAdClose on Start Game - caching will happen');
             // Reset game over flag to allow fresh game start
             window.isGameOver = false;
             // Mark that user has started the game
@@ -1392,15 +1396,22 @@
                 }
                 
                 // Show interstitial ad before returning to home (gotoHome flow) - no caching
+                // Set flag to prevent caching when ad closes
+                window.skipCachingOnAdClose = true;
+                console.log('Pacman: Set skipCachingOnAdClose flag - no caching after ad close from X icon');
                 try {
                   if (typeof showAd === 'function' && window.isAdReady === true) {
                     console.log('Pacman: Showing interstitial ad before returning to home (if available)');
                     showAd();
                   } else {
                     console.log('Pacman: Ad not available, skipping ad show on X click');
+                    // Reset flag if ad not shown
+                    window.skipCachingOnAdClose = false;
                   }
                 } catch(e) {
                   console.log('Error showing ad:', e);
+                  // Reset flag on error
+                  window.skipCachingOnAdClose = false;
                 }
                 
                 // 5. Set up periodic check to ensure controls stay hidden on home screen
