@@ -869,6 +869,15 @@ var PACMAN = (function () {
         map.reset();
         map.draw(ctx);
         
+        // For testing: Level 1 has only 1 ghost, other levels have all 4 ghosts
+        // Recreate ghosts based on current level
+        ghosts = []; // Clear existing ghosts
+        var numGhosts = (level === 1) ? 1 : ghostSpecs.length;
+        for (var i = 0; i < numGhosts; i += 1) {
+            var ghost = new Pacman.Ghost({"getTick":getTick, "getLevel": function() { return level; }}, map, ghostSpecs[i]);
+            ghosts.push(ghost);
+        }
+        
         // Cache ads at game start (mid-roll + rewarded)
         // gameCacheAd() has its own protection mechanisms, so just call it directly
         // But check flags first to ensure we're not in RV flow
@@ -1468,6 +1477,15 @@ var PACMAN = (function () {
         // Start next level after message display
         setTimeout(function() {
             totalGhostsEaten = 0; // Reset ghost count for new level
+            
+            // Recreate ghosts based on current level (Level 1 = 1 ghost, others = 4 ghosts)
+            ghosts = []; // Clear existing ghosts
+            var numGhosts = (level === 1) ? 1 : ghostSpecs.length;
+            for (var i = 0; i < numGhosts; i += 1) {
+                var ghost = new Pacman.Ghost({"getTick":getTick, "getLevel": function() { return level; }}, map, ghostSpecs[i]);
+                ghosts.push(ghost);
+            }
+            
             map.reset();
             user.newLevel();
             startLevel();
@@ -1501,6 +1519,7 @@ var PACMAN = (function () {
             "eatenPill"      : eatenPill 
         }, map);
 
+        // Create all ghosts initially (will be recreated based on level in startNewGame)
         for (i = 0, len = ghostSpecs.length; i < len; i += 1) {
             ghost = new Pacman.Ghost({"getTick":getTick, "getLevel": function() { return level; }}, map, ghostSpecs[i]);
             ghosts.push(ghost);
