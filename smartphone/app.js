@@ -1453,6 +1453,12 @@ var PACMAN = (function () {
         // BUT: Don't cache if we just got extra life from RV video (skip caching after RV)
         // Check multiple conditions to prevent caching after RV video
         try {
+            // Clear skipGameCachingOnAdClose flag before level change caching (this flag is only for x icon click flow)
+            if (window.skipGameCachingOnAdClose) {
+                window.skipGameCachingOnAdClose = false;
+                console.log("Pacman: Cleared skipGameCachingOnAdClose flag before level change caching");
+            }
+            
             var shouldSkipCaching = window.skipCachingAfterRV || window.continuingFromRV;
             if (!shouldSkipCaching && typeof gameCacheAd === 'function') {
                 gameCacheAd();
@@ -1460,6 +1466,8 @@ var PACMAN = (function () {
             } else {
                 if (window.skipCachingAfterRV || window.continuingFromRV) {
                     console.log("Pacman: Skipping caching after RV video extra life - continuingFromRV:", window.continuingFromRV, "skipCachingAfterRV:", window.skipCachingAfterRV);
+                } else if (typeof gameCacheAd !== 'function') {
+                    console.log("Pacman: gameCacheAd function not available");
                 }
             }
             
