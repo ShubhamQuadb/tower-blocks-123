@@ -50,12 +50,6 @@ function cacheAdMidRoll(adKeyId, source) {
         return;
     }
     
-    // CRITICAL: Don't cache if ad was closed from X icon
-    if (window.skipCachingOnAdClose) {
-        console.log("JioGames: cacheAdMidRoll BLOCKED - skipCachingOnAdClose flag is set (X icon ad close)");
-        return;
-    }
-    
     // CRITICAL: Don't cache if we're in the middle of RV video reward flow
     if (window.skipCachingAfterRV || window.continuingFromRV) {
         console.log("JioGames: cacheAdMidRoll BLOCKED - RV video reward flow active. skipCachingAfterRV:", window.skipCachingAfterRV, "continuingFromRV:", window.continuingFromRV);
@@ -99,12 +93,6 @@ function cacheAdRewardedVideo(adKeyId, source) {
     if (!adKeyId || !source) {
         adKeyId ? null : (console.log("Jiogames: cacheAdRewardedVideo() no adKeyId to cacheAd ", adKeyId));
         source ? null : (console.log("Jiogames: cacheAdRewardedVideo() no source to cacheAd ", source));
-        return;
-    }
-    
-    // CRITICAL: Don't cache if ad was closed from X icon
-    if (window.skipCachingOnAdClose) {
-        console.log("JioGames: cacheAdRewardedVideo BLOCKED - skipCachingOnAdClose flag is set (X icon ad close)");
         return;
     }
     
@@ -205,16 +193,6 @@ window.onAdClosed = function (data, pIsVideoCompleted, pIsEligibleForReward) {
         isCachingMidRoll = false; // Reset caching flag when ad is closed
         isShowingAd = false; // Reset showing flag when ad is closed
         console.log("JioGames: onAdClose Show Ads " + isAdReady);
-        
-        // CRITICAL: If ad was closed from X icon, prevent any caching
-        if (window.skipCachingOnAdClose) {
-            console.log("JioGames: Ad closed from X icon - skipCachingOnAdClose flag is set, preventing caching");
-            // Reset flag after a delay to allow normal caching on next game start
-            setTimeout(function() {
-                window.skipCachingOnAdClose = false;
-                console.log("JioGames: skipCachingOnAdClose flag reset - caching allowed on next game start");
-            }, 5000); // Reset after 5 seconds
-        }
         
         // ⚠️ DO NOT re-cache ads here - only cache on explicit button clicks
     }
@@ -340,12 +318,6 @@ function GratifyReward() {
 function cacheAd() {
     console.log("JioGames: cacheAd called");
     
-    // CRITICAL: Don't cache if ad was closed from X icon
-    if (window.skipCachingOnAdClose) {
-        console.log("JioGames: cacheAd BLOCKED - skipCachingOnAdClose flag is set (X icon ad close)");
-        return;
-    }
-    
     // CRITICAL: Don't cache if we're in the middle of RV video reward flow
     if (window.skipCachingAfterRV || window.continuingFromRV) {
         console.log("JioGames: cacheAd BLOCKED - RV video reward flow active. skipCachingAfterRV:", window.skipCachingAfterRV, "continuingFromRV:", window.continuingFromRV);
@@ -360,12 +332,6 @@ function cacheAd() {
 }
 function cacheAdRewarded() {
     console.log("JioGames: cacheAdRewarded called");
-    
-    // CRITICAL: Don't cache if ad was closed from X icon
-    if (window.skipCachingOnAdClose) {
-        console.log("JioGames: cacheAdRewarded BLOCKED - skipCachingOnAdClose flag is set (X icon ad close)");
-        return;
-    }
     
     // CRITICAL: Don't cache if we're in the middle of RV video reward flow
     if (window.skipCachingAfterRV || window.continuingFromRV) {
@@ -525,12 +491,6 @@ function resetCachingFlags() {
 window.resetCachingFlags = resetCachingFlags;
 
 function gameCacheAd() {
-    // CRITICAL: Don't cache if ad was closed from X icon
-    if (window.skipCachingOnAdClose) {
-        console.log("JioGames: gameCacheAd BLOCKED - skipCachingOnAdClose flag is set (X icon ad close)");
-        return;
-    }
-    
     // CRITICAL: Don't cache if we're in the middle of RV video reward flow
     // Check if we're continuing from RV video - if yes, skip caching completely
     if (window.skipCachingAfterRV || window.continuingFromRV) {
@@ -563,11 +523,6 @@ function gameCacheAd() {
     // IMPORTANT: Check flags again in setTimeout - flags might be set during the delay
     setTimeout(function(){
         // Double-check flags before caching rewarded ad
-        if (window.skipCachingOnAdClose) {
-            console.log("JioGames: cacheAdRewarded BLOCKED in setTimeout - skipCachingOnAdClose flag is set (X icon ad close)");
-            isCachingAds = false;
-            return;
-        }
         if (window.skipCachingAfterRV || window.continuingFromRV) {
             console.log("JioGames: cacheAdRewarded BLOCKED in setTimeout - RV video reward flow active. skipCachingAfterRV:", window.skipCachingAfterRV, "continuingFromRV:", window.continuingFromRV);
             // Reset caching flag even if blocked
