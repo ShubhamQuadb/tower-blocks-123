@@ -916,6 +916,12 @@ var PACMAN = (function () {
                 e.stopPropagation();
                 return false;
             }
+            if (typeof window !== "undefined" && window.skipPauseKeyOnNextAd) {
+                console.log("Pacman: keyDown ignored - skipPauseKeyOnNextAd active");
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
         } catch(blockErr) {}
         console.log("Pacman: keyDown called, keyCode:", e.keyCode, "which:", e.which, "current state:", state);
         if (e.keyCode === KEY.N) {
