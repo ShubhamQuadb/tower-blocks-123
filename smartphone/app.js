@@ -1393,7 +1393,7 @@ var PACMAN = (function () {
                 if (isGameOver) {
                     dialog("Game Over! Score: " + finalScore + ". Press START");
                 } else {
-                    var waitingMessage = "Press START button to play a new game";
+                    var waitingMessage = "";
                     try {
                         if (typeof window !== "undefined" && window.isNextLevelPromptVisible) {
                             waitingMessage = window.nextLevelDialogText || "Tap Next Level to continue";
