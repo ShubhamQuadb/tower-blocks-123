@@ -1491,6 +1491,10 @@ var PACMAN = (function () {
                 if (window.pendingNextLevelStart) {
                     window.pendingNextLevelStart = null;
                 }
+                if (window.pendingNextLevelStartTimeout) {
+                    clearTimeout(window.pendingNextLevelStartTimeout);
+                    window.pendingNextLevelStartTimeout = null;
+                }
                 // Recreate ghosts based on current level (Level 1 = 1 ghost, others = 4 ghosts)
                 ghosts = []; // Clear existing ghosts
                 var numGhosts = (level === 1) ? 1 : ghostSpecs.length;
@@ -1504,6 +1508,11 @@ var PACMAN = (function () {
                 startLevel();
             }
             
+            // Clear any previous pending start handlers
+            if (window.pendingNextLevelStartTimeout) {
+                clearTimeout(window.pendingNextLevelStartTimeout);
+                window.pendingNextLevelStartTimeout = null;
+            }
             // Store pending next-level start handler so adClosed can resume gameplay after ad
             window.pendingNextLevelStart = startNextLevelNow;
             
@@ -1512,11 +1521,24 @@ var PACMAN = (function () {
                 console.log("Pacman: Showing interstitial ad before starting next level");
                 try {
                     showAd();
+                    window.pendingNextLevelStartTimeout = setTimeout(function() {
+                        if (typeof window.pendingNextLevelStart === 'function') {
+                            console.log("Pacman: Fallback - starting next level (adClosed not received in time)");
+                            var fallbackStart = window.pendingNextLevelStart;
+                            window.pendingNextLevelStart = null;
+                            window.pendingNextLevelStartTimeout = null;
+                            fallbackStart();
+                        }
+                    }, 10000); // 10 second fallback
                 } catch (showErr) {
                     console.log("Pacman: Failed to show ad before next level, starting immediately", showErr);
                     if (window.pendingNextLevelStart) {
                         var fallbackStart = window.pendingNextLevelStart;
                         window.pendingNextLevelStart = null;
+                        if (window.pendingNextLevelStartTimeout) {
+                            clearTimeout(window.pendingNextLevelStartTimeout);
+                            window.pendingNextLevelStartTimeout = null;
+                        }
                         fallbackStart();
                     } else {
                         startNextLevelNow();
@@ -1528,6 +1550,10 @@ var PACMAN = (function () {
                 if (window.pendingNextLevelStart) {
                     var immediateStart = window.pendingNextLevelStart;
                     window.pendingNextLevelStart = null;
+                    if (window.pendingNextLevelStartTimeout) {
+                        clearTimeout(window.pendingNextLevelStartTimeout);
+                        window.pendingNextLevelStartTimeout = null;
+                    }
                     immediateStart();
                 } else {
                     startNextLevelNow();
@@ -1642,6 +1668,10 @@ var PACMAN = (function () {
                     }
                     
                     // Interstitial ad closed - if we were waiting to start the next level, start it now
+                    if (window.pendingNextLevelStartTimeout) {
+                        clearTimeout(window.pendingNextLevelStartTimeout);
+                        window.pendingNextLevelStartTimeout = null;
+                    }
                     if (typeof window.pendingNextLevelStart === 'function') {
                         var nextLevelStartFn = window.pendingNextLevelStart;
                         window.pendingNextLevelStart = null;
