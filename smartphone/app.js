@@ -1578,27 +1578,26 @@ var PACMAN = (function () {
                         console.log("Pacman: Score posted after interstitial ad closed:", scoreToPost);
                     }
                     
-                    // Interstitial ad closed - ensure game over popup is visible
+                    // Interstitial ad closed - ensure game over popup is visible immediately
                     if (window.pendingGameOverPopup) {
                         var popupData = window.pendingGameOverPopup;
                         console.log("Pacman: Interstitial ad closed, ensuring game over popup is visible with data:", popupData);
                         // Clear pending popup BEFORE showing to prevent duplicate calls
                         window.pendingGameOverPopup = null;
-                        setTimeout(function() {
-                            try {
-                                if (window.showGameOverOverlay) {
-                                    window.showGameOverOverlay({
-                                        score: popupData.score,
-                                        level: popupData.level
-                                    });
-                                    console.log("Pacman: Game over popup ensured visible after interstitial ad closed");
-                                } else {
-                                    console.log("Pacman: showGameOverOverlay function not available");
-                                }
-                            } catch(e) {
-                                console.log("Pacman: Error showing game over overlay after ad close", e);
+                        // Show popup immediately without delay
+                        try {
+                            if (window.showGameOverOverlay) {
+                                window.showGameOverOverlay({
+                                    score: popupData.score,
+                                    level: popupData.level
+                                });
+                                console.log("Pacman: Game over popup ensured visible after interstitial ad closed");
+                            } else {
+                                console.log("Pacman: showGameOverOverlay function not available");
                             }
-                        }, 500); // Small delay to ensure ad is fully closed
+                        } catch(e) {
+                            console.log("Pacman: Error showing game over overlay after ad close", e);
+                        }
                     } else {
                         console.log("Pacman: No pendingGameOverPopup found, popup should already be visible");
                     }
