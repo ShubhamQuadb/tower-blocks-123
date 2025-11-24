@@ -392,6 +392,7 @@
           var BEST_SCORE_KEY='pacmanBestScore';
           window.isNextLevelPromptVisible = false;
           window.nextLevelDialogText = null;
+          window.skipCountdownForNextLevel = false;
           
           function closeRewardPrompt(action){
             if (rewardModal) {
@@ -564,13 +565,17 @@
           
           if (btnStartNextLevel) {
             btnStartNextLevel.addEventListener('click', function(){
+              window.skipCountdownForNextLevel = true;
+              var cb = nextLevelCallbacks && typeof nextLevelCallbacks.onStart === 'function'
+                ? nextLevelCallbacks.onStart
+                : null;
               if (nextLevelModal && nextLevelModal.classList.contains('visible')) {
                 window.hideNextLevelPrompt();
               }
-              if (nextLevelCallbacks && typeof nextLevelCallbacks.onStart === 'function') {
-                var cb = nextLevelCallbacks.onStart;
-                nextLevelCallbacks = null;
-                cb();
+              if (cb) {
+                setTimeout(function(){
+                  cb();
+                }, 0);
               }
             });
           }
@@ -1274,12 +1279,12 @@
                 console.log('Pacman: Button innerHTML:', startPauseBtn ? startPauseBtn.innerHTML : 'N/A');
                 console.log('Pacman: Button disabled:', startPauseBtn ? startPauseBtn.disabled : 'N/A');
                 
-                var buttonTextPreview = startPauseBtn ? startPauseBtn.innerHTML.trim() : '';
-                if (window.isNextLevelPromptVisible && buttonTextPreview.toLowerCase().indexOf('start') !== -1) {
-                  console.log('Pacman: Start button disabled while Next Level popup is visible');
+                if (window.isNextLevelPromptVisible) {
+                  console.log('Pacman: Button actions disabled while Next Level popup is visible');
                   return false;
                 }
-                
+
+                var buttonTextPreview = startPauseBtn ? startPauseBtn.innerHTML.trim() : '';
                 // Set debounce flag
                 isProcessingClick = true;
                 

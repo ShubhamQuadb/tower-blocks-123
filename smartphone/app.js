@@ -826,9 +826,22 @@ var PACMAN = (function () {
         for (var i = 0; i < ghosts.length; i += 1) { 
             ghosts[i].reset();
         }
-        audio.play("start");
+        var skipCountdown = false;
+        try {
+            if (typeof window !== "undefined" && window.skipCountdownForNextLevel) {
+                skipCountdown = true;
+                window.skipCountdownForNextLevel = false;
+            }
+        } catch (e) {}
+        if (!skipCountdown) {
+            audio.play("start");
+        }
         timerStart = tick;
-        setState(COUNTDOWN);
+        if (skipCountdown) {
+            setState(PLAYING);
+        } else {
+            setState(COUNTDOWN);
+        }
         
         // Note: Ads caching happens in completedLevel() when level completes automatically
         // No caching here - caching only on game start (startNewGame) and level complete (completedLevel)
@@ -896,6 +909,14 @@ var PACMAN = (function () {
     }
 
     function keyDown(e) {
+        try {
+            if (typeof window !== "undefined" && window.isNextLevelPromptVisible) {
+                console.log("Pacman: keyDown ignored - next level prompt visible");
+                e.preventDefault();
+                e.stopPropagation();
+                return false;
+            }
+        } catch(blockErr) {}
         console.log("Pacman: keyDown called, keyCode:", e.keyCode, "which:", e.which, "current state:", state);
         if (e.keyCode === KEY.N) {
             // N key should only start game if not game over (use Play Again button when game over)
@@ -1396,10 +1417,14 @@ var PACMAN = (function () {
                     var waitingMessage = "";
                     try {
                         if (typeof window !== "undefined" && window.isNextLevelPromptVisible) {
-                            waitingMessage = window.nextLevelDialogText || "Tap Next Level to continue";
+                            waitingMessage = window.nextLevelDialogText || "";
                         }
                     } catch (dialogErr) {}
-                    dialog(waitingMessage);
+                    if (waitingMessage) {
+                        dialog(waitingMessage);
+                    } else {
+                        dialog("");
+                    }
                 }
             }
             // Always draw pills animation and footer to keep screen visible
@@ -1488,87 +1513,65 @@ var PACMAN = (function () {
             console.log("Pacman: Error caching ads on level complete", e);
         }
         
-        // Start next level after message display
+        // Start next level after a short celebration display
         setTimeout(function() {
-            function queueNextLevelStart() {
-                totalGhostsEaten = 0; // Reset ghost count for new level
-                
-                function startNextLevelNow() {
-                    if (window.pendingNextLevelStart) {
-                        window.pendingNextLevelStart = null;
+            totalGhostsEaten = 0; // Reset ghost count for new level
+
+            function startNextLevelNow() {
+                // Recreate ghosts based on current level (Level 1 = 1 ghost, others = 4 ghosts)
+                ghosts = [];
+                var numGhosts = (level === 1) ? 1 : ghostSpecs.length;
+                for (var i = 0; i < numGhosts; i += 1) {
+                    var ghost = new Pacman.Ghost({"getTick":getTick, "getLevel": function() { return level; }}, map, ghostSpecs[i]);
+                    ghosts.push(ghost);
+                }
+                map.reset();
+                user.newLevel();
+                map.draw(ctx);
+                try {
+                    if (user && typeof user.draw === "function" && ctx) {
+                        user.draw(ctx);
                     }
-                    if (window.pendingNextLevelStartTimeout) {
-                        clearTimeout(window.pendingNextLevelStartTimeout);
-                        window.pendingNextLevelStartTimeout = null;
-                    }
+                } catch (drawErr) {
+                    console.log("Pacman: Error drawing user on next level start", drawErr);
+                }
+                drawFooter();
+                if (typeof window !== "undefined") {
+                    window.skipCountdownForNextLevel = true;
+                    window.startNextLevelAfterAd = null;
                     window.skipPauseKeyOnNextAd = false;
-                    
-                    // Recreate ghosts based on current level (Level 1 = 1 ghost, others = 4 ghosts)
-                    ghosts = [];
-                    var numGhosts = (level === 1) ? 1 : ghostSpecs.length;
-                    for (var i = 0; i < numGhosts; i += 1) {
-                        var ghost = new Pacman.Ghost({"getTick":getTick, "getLevel": function() { return level; }}, map, ghostSpecs[i]);
-                        ghosts.push(ghost);
+                }
+                try {
+                    if (typeof gameCacheAd === "function") {
+                        gameCacheAd();
+                        console.log("Pacman: Ads caching triggered on Start Next Level button");
                     }
-                    
-                    map.reset();
-                    user.newLevel();
-                    startLevel();
+                } catch (cacheErr) {
+                    console.log("Pacman: Error caching ads when starting next level", cacheErr);
                 }
-                
-                if (window.pendingNextLevelStartTimeout) {
-                    clearTimeout(window.pendingNextLevelStartTimeout);
-                    window.pendingNextLevelStartTimeout = null;
-                }
-                window.pendingNextLevelStart = startNextLevelNow;
-                
-                var canShowAdBeforeNextLevel = (typeof showAd === 'function') && window.isAdReady === true;
-                if (canShowAdBeforeNextLevel) {
-                    console.log("Pacman: Showing interstitial ad before starting next level");
-                    try {
+                startLevel();
+            }
+
+            function handleStartNextLevel() {
+                startNextLevelNow();
+
+                var adReady = (typeof showAd === 'function') && window.isAdReady === true;
+                if (adReady) {
+                    console.log("Pacman: Showing interstitial ad right after next level start");
+                    if (typeof window !== "undefined") {
                         window.skipPauseKeyOnNextAd = true;
-                        showAd();
-                        window.pendingNextLevelStartTimeout = setTimeout(function() {
-                            if (typeof window.pendingNextLevelStart === 'function') {
-                                console.log("Pacman: Fallback - starting next level (adClosed not received in time)");
-                                var fallbackStart = window.pendingNextLevelStart;
-                                window.pendingNextLevelStart = null;
-                                window.pendingNextLevelStartTimeout = null;
-                                fallbackStart();
-                            }
-                        }, 10000);
-                    } catch (showErr) {
-                        console.log("Pacman: Failed to show ad before next level, starting immediately", showErr);
-                        window.skipPauseKeyOnNextAd = false;
-                        if (window.pendingNextLevelStart) {
-                            var fallbackStart = window.pendingNextLevelStart;
-                            window.pendingNextLevelStart = null;
-                            if (window.pendingNextLevelStartTimeout) {
-                                clearTimeout(window.pendingNextLevelStartTimeout);
-                                window.pendingNextLevelStartTimeout = null;
-                            }
-                            fallbackStart();
-                        } else {
-                            startNextLevelNow();
-                        }
                     }
-                } else {
-                    console.log("Pacman: Ad not ready before next level, starting immediately");
-                    window.skipPauseKeyOnNextAd = false;
-                    if (window.pendingNextLevelStart) {
-                        var immediateStart = window.pendingNextLevelStart;
-                        window.pendingNextLevelStart = null;
-                        if (window.pendingNextLevelStartTimeout) {
-                            clearTimeout(window.pendingNextLevelStartTimeout);
-                            window.pendingNextLevelStartTimeout = null;
+                    try {
+                        showAd();
+                    } catch (showErr) {
+                        console.log("Pacman: Failed to show ad after next level start", showErr);
+                        if (typeof window !== "undefined") {
+                            window.skipPauseKeyOnNextAd = false;
                         }
-                        immediateStart();
-                    } else {
-                        startNextLevelNow();
                     }
                 }
             }
-            
+
             var nextLevelScore = (user && typeof user.theScore === 'function') ? user.theScore() : 0;
             if (typeof window.showNextLevelPrompt === 'function') {
                 window.showNextLevelPrompt({
@@ -1578,17 +1581,13 @@ var PACMAN = (function () {
                         if (typeof window.hideNextLevelPrompt === 'function') {
                             window.hideNextLevelPrompt();
                         }
-                        queueNextLevelStart();
+                        handleStartNextLevel();
                     }
                 });
             } else {
-                if (typeof window !== "undefined") {
-                    window.isNextLevelPromptVisible = false;
-                    window.nextLevelDialogText = null;
-                }
-                queueNextLevelStart();
+                handleStartNextLevel();
             }
-        }, 2000);
+        }, 600);
     };
 
     function keyPress(e) { 
@@ -1696,19 +1695,15 @@ var PACMAN = (function () {
                         console.log("Pacman: Score posted after interstitial ad closed:", scoreToPost);
                     }
                     
-                    // Interstitial ad closed - if we were waiting to start the next level, start it now
-                    if (window.pendingNextLevelStartTimeout) {
-                        clearTimeout(window.pendingNextLevelStartTimeout);
-                        window.pendingNextLevelStartTimeout = null;
-                    }
-                    if (typeof window.pendingNextLevelStart === 'function') {
-                        var nextLevelStartFn = window.pendingNextLevelStart;
-                        window.pendingNextLevelStart = null;
-                        console.log("Pacman: Starting pending next level after interstitial ad closed");
+                    if (window.startNextLevelAfterAd) {
+                        var nextLevelStartFn = window.startNextLevelAfterAd;
+                        window.startNextLevelAfterAd = null;
+                        window.skipPauseKeyOnNextAd = false;
+                        console.log("Pacman: Running pending next level start after ad close");
                         try {
                             nextLevelStartFn();
                         } catch(nextLevelErr) {
-                            console.log("Pacman: Error starting next level after ad close", nextLevelErr);
+                            console.log("Pacman: Error running next level start after ad close", nextLevelErr);
                         }
                     }
                     
