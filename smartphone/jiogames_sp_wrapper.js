@@ -194,6 +194,12 @@ window.onAdClosed = function (data, pIsVideoCompleted, pIsEligibleForReward) {
         isShowingAd = false; // Reset showing flag when ad is closed
         console.log("JioGames: onAdClose Show Ads " + isAdReady);
         
+        // Prevent game caching when ad closes from x icon click
+        if (window.skipGameCachingOnAdClose) {
+            console.log("JioGames: Skipping game caching on ad close (x icon click flow)");
+            window.skipGameCachingOnAdClose = false; // Clear flag after use
+        }
+        
         // ⚠️ DO NOT re-cache ads here - only cache on explicit button clicks
     }
     
@@ -496,6 +502,12 @@ function gameCacheAd() {
     if (window.skipCachingAfterRV || window.continuingFromRV) {
         console.log("JioGames: gameCacheAd BLOCKED - RV video reward flow active. skipCachingAfterRV:", window.skipCachingAfterRV, "continuingFromRV:", window.continuingFromRV);
         console.trace("JioGames: gameCacheAd call stack trace (RV flow active)");
+        return;
+    }
+    
+    // Prevent game caching when ad closes from x icon click
+    if (window.skipGameCachingOnAdClose) {
+        console.log("JioGames: gameCacheAd BLOCKED - ad closed from x icon click, skipping game caching");
         return;
     }
     

@@ -641,6 +641,8 @@
               try {
                 if (typeof showAd === 'function' && window.isAdReady === true) {
                   console.log('Pacman: Showing interstitial ad before returning to home (if available)');
+                  // Set flag to prevent game caching when ad closes
+                  window.skipGameCachingOnAdClose = true;
                   showAd();
                 } else {
                   console.log('Pacman: Ad not available, skipping ad show on Back to Home');
@@ -1395,6 +1397,8 @@
                 try {
                   if (typeof showAd === 'function' && window.isAdReady === true) {
                     console.log('Pacman: Showing interstitial ad before returning to home (if available)');
+                    // Set flag to prevent game caching when ad closes
+                    window.skipGameCachingOnAdClose = true;
                     showAd();
                   } else {
                     console.log('Pacman: Ad not available, skipping ad show on X click');
