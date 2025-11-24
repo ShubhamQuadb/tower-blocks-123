@@ -390,6 +390,8 @@
           var btnPlayAgain=document.getElementById('btnPlayAgain');
           var btnCloseGameOver=document.getElementById('btnCloseGameOver');
           var BEST_SCORE_KEY='pacmanBestScore';
+          window.isNextLevelPromptVisible = false;
+          window.nextLevelDialogText = null;
           
           function closeRewardPrompt(action){
             if (rewardModal) {
@@ -518,6 +520,13 @@
               return;
             }
             nextLevelCallbacks = options;
+            window.isNextLevelPromptVisible = true;
+            window.nextLevelDialogText = options.dialogText || 'Tap the Next Level button to continue.';
+            if (startPauseBtn) {
+              startPauseBtn.disabled = true;
+              startPauseBtn.classList.add('btn-disabled');
+              startPauseBtn.style.opacity = '0.5';
+            }
             if (nextLevelMessage) {
               nextLevelMessage.textContent = options.message || 'Tap start when you are ready to continue.';
             }
@@ -538,11 +547,19 @@
           window.hideNextLevelPrompt = function(){
             if (!nextLevelModal) {
               nextLevelCallbacks = null;
+              window.isNextLevelPromptVisible = false;
               return;
             }
             nextLevelModal.classList.remove('visible');
             nextLevelModal.setAttribute('aria-hidden','true');
             nextLevelCallbacks = null;
+            window.isNextLevelPromptVisible = false;
+            window.nextLevelDialogText = null;
+            if (startPauseBtn) {
+              startPauseBtn.disabled = false;
+              startPauseBtn.classList.remove('btn-disabled');
+              startPauseBtn.style.opacity = '';
+            }
           };
           
           if (btnStartNextLevel) {
@@ -1257,12 +1274,18 @@
                 console.log('Pacman: Button innerHTML:', startPauseBtn ? startPauseBtn.innerHTML : 'N/A');
                 console.log('Pacman: Button disabled:', startPauseBtn ? startPauseBtn.disabled : 'N/A');
                 
+                var buttonTextPreview = startPauseBtn ? startPauseBtn.innerHTML.trim() : '';
+                if (window.isNextLevelPromptVisible && buttonTextPreview.toLowerCase().indexOf('start') !== -1) {
+                  console.log('Pacman: Start button disabled while Next Level popup is visible');
+                  return false;
+                }
+                
                 // Set debounce flag
                 isProcessingClick = true;
                 
                 // Fire the appropriate key - use button text as primary check, state as fallback
                 var keyCode = 0;
-                var buttonText = startPauseBtn ? startPauseBtn.innerHTML.trim() : '';
+                var buttonText = buttonTextPreview;
                 
                 // Check button text first (more reliable)
                 if (buttonText.includes('Start') || buttonText.includes('▶ Start')) {

@@ -1393,7 +1393,13 @@ var PACMAN = (function () {
                 if (isGameOver) {
                     dialog("Game Over! Score: " + finalScore + ". Press START");
                 } else {
-                    dialog("Press START button to play a new game");
+                    var waitingMessage = "Press START button to play a new game";
+                    try {
+                        if (typeof window !== "undefined" && window.isNextLevelPromptVisible) {
+                            waitingMessage = window.nextLevelDialogText || "Tap Next Level to continue";
+                        }
+                    } catch (dialogErr) {}
+                    dialog(waitingMessage);
                 }
             }
             // Always draw pills animation and footer to keep screen visible
@@ -1576,6 +1582,10 @@ var PACMAN = (function () {
                     }
                 });
             } else {
+                if (typeof window !== "undefined") {
+                    window.isNextLevelPromptVisible = false;
+                    window.nextLevelDialogText = null;
+                }
                 queueNextLevelStart();
             }
         }, 2000);
