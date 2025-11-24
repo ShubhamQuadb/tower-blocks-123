@@ -1034,6 +1034,109 @@ body.game-playing .controls {
   }
 }
 
+/* Next Level modal */
+.next-level-modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  z-index: 1300;
+}
+
+.next-level-modal.visible {
+  display: flex;
+}
+
+.next-level-modal__card {
+  width: min(420px, 92vw);
+  background: #050b16;
+  border: 1px solid rgba(255, 255, 0, 0.2);
+  border-radius: 18px;
+  padding: 22px;
+  box-shadow: 0 25px 55px rgba(0, 0, 0, 0.65);
+  text-align: center;
+  animation: rewardPop 0.28s ease;
+}
+
+.next-level-modal__badge {
+  width: 54px;
+  height: 54px;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #ffd54f, #ff9800);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 14px;
+  font-size: 28px;
+  box-shadow: 0 10px 25px rgba(255, 152, 0, 0.45);
+}
+
+.next-level-modal__title {
+  font-size: 20px;
+  letter-spacing: 1px;
+  color: #ffe082;
+  margin-bottom: 8px;
+  text-transform: uppercase;
+}
+
+.next-level-modal__message {
+  font-size: 15px;
+  color: #fef7d8;
+  margin-bottom: 18px;
+}
+
+.next-level-modal__stats {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-bottom: 18px;
+  flex-wrap: wrap;
+}
+
+.next-level-modal__stat {
+  background: rgba(255, 255, 255, 0.04);
+  padding: 10px 14px;
+  border-radius: 12px;
+  min-width: 120px;
+  border: 1px solid rgba(255, 255, 0, 0.15);
+}
+
+.next-level-modal__stat span {
+  display: block;
+  font-size: 12px;
+  color: #f5e9a9;
+  margin-bottom: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.next-level-modal__stat strong {
+  font-size: 18px;
+  color: #fff8c5;
+}
+
+.next-level-modal__btn {
+  width: 100%;
+  padding: 14px;
+  border: none;
+  border-radius: 14px;
+  font-size: 16px;
+  font-weight: 700;
+  background: linear-gradient(90deg, #fff176, #ffca28);
+  color: #2b1900;
+  cursor: pointer;
+  box-shadow: 0 12px 30px rgba(255, 202, 40, 0.35);
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+.next-level-modal__btn:active {
+  transform: scale(0.98);
+  opacity: 0.9;
+}
+
 /* Game Over overlay */
 #gameOverOverlay {
   position: fixed;

@@ -1484,83 +1484,99 @@ var PACMAN = (function () {
         
         // Start next level after message display
         setTimeout(function() {
-            totalGhostsEaten = 0; // Reset ghost count for new level
-            
-            function startNextLevelNow() {
-                // If this function is still stored globally, clear it before running
-                if (window.pendingNextLevelStart) {
-                    window.pendingNextLevelStart = null;
+            function queueNextLevelStart() {
+                totalGhostsEaten = 0; // Reset ghost count for new level
+                
+                function startNextLevelNow() {
+                    if (window.pendingNextLevelStart) {
+                        window.pendingNextLevelStart = null;
+                    }
+                    if (window.pendingNextLevelStartTimeout) {
+                        clearTimeout(window.pendingNextLevelStartTimeout);
+                        window.pendingNextLevelStartTimeout = null;
+                    }
+                    window.skipPauseKeyOnNextAd = false;
+                    
+                    // Recreate ghosts based on current level (Level 1 = 1 ghost, others = 4 ghosts)
+                    ghosts = [];
+                    var numGhosts = (level === 1) ? 1 : ghostSpecs.length;
+                    for (var i = 0; i < numGhosts; i += 1) {
+                        var ghost = new Pacman.Ghost({"getTick":getTick, "getLevel": function() { return level; }}, map, ghostSpecs[i]);
+                        ghosts.push(ghost);
+                    }
+                    
+                    map.reset();
+                    user.newLevel();
+                    startLevel();
                 }
+                
                 if (window.pendingNextLevelStartTimeout) {
                     clearTimeout(window.pendingNextLevelStartTimeout);
                     window.pendingNextLevelStartTimeout = null;
                 }
-                // Recreate ghosts based on current level (Level 1 = 1 ghost, others = 4 ghosts)
-                ghosts = []; // Clear existing ghosts
-                var numGhosts = (level === 1) ? 1 : ghostSpecs.length;
-                for (var i = 0; i < numGhosts; i += 1) {
-                    var ghost = new Pacman.Ghost({"getTick":getTick, "getLevel": function() { return level; }}, map, ghostSpecs[i]);
-                    ghosts.push(ghost);
-                }
+                window.pendingNextLevelStart = startNextLevelNow;
                 
-                map.reset();
-                user.newLevel();
-                startLevel();
-            }
-            
-            // Clear any previous pending start handlers
-            if (window.pendingNextLevelStartTimeout) {
-                clearTimeout(window.pendingNextLevelStartTimeout);
-                window.pendingNextLevelStartTimeout = null;
-            }
-            // Store pending next-level start handler so adClosed can resume gameplay after ad
-            window.pendingNextLevelStart = startNextLevelNow;
-            
-            var canShowAdBeforeNextLevel = (typeof showAd === 'function') && window.isAdReady === true;
-            if (canShowAdBeforeNextLevel) {
-                console.log("Pacman: Showing interstitial ad before starting next level");
-                try {
-                    window.skipPauseKeyOnNextAd = true;
-                    showAd();
-                    window.pendingNextLevelStartTimeout = setTimeout(function() {
-                        if (typeof window.pendingNextLevelStart === 'function') {
-                            console.log("Pacman: Fallback - starting next level (adClosed not received in time)");
+                var canShowAdBeforeNextLevel = (typeof showAd === 'function') && window.isAdReady === true;
+                if (canShowAdBeforeNextLevel) {
+                    console.log("Pacman: Showing interstitial ad before starting next level");
+                    try {
+                        window.skipPauseKeyOnNextAd = true;
+                        showAd();
+                        window.pendingNextLevelStartTimeout = setTimeout(function() {
+                            if (typeof window.pendingNextLevelStart === 'function') {
+                                console.log("Pacman: Fallback - starting next level (adClosed not received in time)");
+                                var fallbackStart = window.pendingNextLevelStart;
+                                window.pendingNextLevelStart = null;
+                                window.pendingNextLevelStartTimeout = null;
+                                fallbackStart();
+                            }
+                        }, 10000);
+                    } catch (showErr) {
+                        console.log("Pacman: Failed to show ad before next level, starting immediately", showErr);
+                        window.skipPauseKeyOnNextAd = false;
+                        if (window.pendingNextLevelStart) {
                             var fallbackStart = window.pendingNextLevelStart;
                             window.pendingNextLevelStart = null;
-                            window.pendingNextLevelStartTimeout = null;
+                            if (window.pendingNextLevelStartTimeout) {
+                                clearTimeout(window.pendingNextLevelStartTimeout);
+                                window.pendingNextLevelStartTimeout = null;
+                            }
                             fallbackStart();
+                        } else {
+                            startNextLevelNow();
                         }
-                    }, 10000); // 10 second fallback
-                } catch (showErr) {
-                    console.log("Pacman: Failed to show ad before next level, starting immediately", showErr);
+                    }
+                } else {
+                    console.log("Pacman: Ad not ready before next level, starting immediately");
                     window.skipPauseKeyOnNextAd = false;
                     if (window.pendingNextLevelStart) {
-                        var fallbackStart = window.pendingNextLevelStart;
+                        var immediateStart = window.pendingNextLevelStart;
                         window.pendingNextLevelStart = null;
                         if (window.pendingNextLevelStartTimeout) {
                             clearTimeout(window.pendingNextLevelStartTimeout);
                             window.pendingNextLevelStartTimeout = null;
                         }
-                        fallbackStart();
+                        immediateStart();
                     } else {
                         startNextLevelNow();
                     }
                 }
-            } else {
-                console.log("Pacman: Ad not ready before next level, starting immediately");
-                window.skipPauseKeyOnNextAd = false;
-                // Clear pending handler before running immediately
-                if (window.pendingNextLevelStart) {
-                    var immediateStart = window.pendingNextLevelStart;
-                    window.pendingNextLevelStart = null;
-                    if (window.pendingNextLevelStartTimeout) {
-                        clearTimeout(window.pendingNextLevelStartTimeout);
-                        window.pendingNextLevelStartTimeout = null;
+            }
+            
+            var nextLevelScore = (user && typeof user.theScore === 'function') ? user.theScore() : 0;
+            if (typeof window.showNextLevelPrompt === 'function') {
+                window.showNextLevelPrompt({
+                    level: level,
+                    score: nextLevelScore,
+                    onStart: function() {
+                        if (typeof window.hideNextLevelPrompt === 'function') {
+                            window.hideNextLevelPrompt();
+                        }
+                        queueNextLevelStart();
                     }
-                    immediateStart();
-                } else {
-                    startNextLevelNow();
-                }
+                });
+            } else {
+                queueNextLevelStart();
             }
         }, 2000);
     };

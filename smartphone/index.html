@@ -124,6 +124,24 @@
         </div>
       </div>
     </div>
+    <div id="nextLevelModal" class="next-level-modal" aria-hidden="true" role="dialog" aria-labelledby="nextLevelTitle">
+      <div class="next-level-modal__card">
+        <div class="next-level-modal__badge">🚀</div>
+        <h2 id="nextLevelTitle" class="next-level-modal__title">Next Level Ready!</h2>
+        <p id="nextLevelMessage" class="next-level-modal__message">Tap start when you're ready to continue.</p>
+        <div class="next-level-modal__stats">
+          <div class="next-level-modal__stat">
+            <span>Upcoming Level</span>
+            <strong id="nextLevelLevel">Level 2</strong>
+          </div>
+          <div class="next-level-modal__stat">
+            <span>Current Score</span>
+            <strong id="nextLevelScore">0</strong>
+          </div>
+        </div>
+        <button id="btnStartNextLevel" class="next-level-modal__btn">Start Next Level</button>
+      </div>
+    </div>
     <!-- Game Over Overlay -->
     <div id="gameOverOverlay" aria-hidden="true">
       <div class="overlay-card" role="dialog" aria-labelledby="gameOverTitle" aria-describedby="gameOverScore">
@@ -359,6 +377,12 @@
           var btnRewardWatch=document.getElementById('btnRewardWatch');
           var btnRewardSkip=document.getElementById('btnRewardSkip');
           var rewardCallbacks=null;
+          var nextLevelModal=document.getElementById('nextLevelModal');
+          var nextLevelMessage=document.getElementById('nextLevelMessage');
+          var nextLevelLevel=document.getElementById('nextLevelLevel');
+          var nextLevelScore=document.getElementById('nextLevelScore');
+          var btnStartNextLevel=document.getElementById('btnStartNextLevel');
+          var nextLevelCallbacks=null;
           var gameOverOverlay=document.getElementById('gameOverOverlay');
           var gameOverScore=document.getElementById('gameOverScore');
           var gameOverLevel=document.getElementById('gameOverLevel');
@@ -484,6 +508,55 @@
               closeRewardPrompt('cancel');
             }
           });
+
+          window.showNextLevelPrompt = function(options){
+            options = options || {};
+            if (!nextLevelModal) {
+              if (typeof options.onStart === 'function') {
+                options.onStart();
+              }
+              return;
+            }
+            nextLevelCallbacks = options;
+            if (nextLevelMessage) {
+              nextLevelMessage.textContent = options.message || 'Tap start when you are ready to continue.';
+            }
+            if (nextLevelLevel) {
+              nextLevelLevel.textContent = options.level ? ('Level ' + options.level) : 'Next Level';
+            }
+            if (nextLevelScore) {
+              var scoreValue = (typeof options.score === 'number') ? options.score : (options.score || 0);
+              nextLevelScore.textContent = scoreValue;
+            }
+            if (btnStartNextLevel) {
+              btnStartNextLevel.textContent = options.buttonLabel || (options.level ? ('Start Level ' + options.level) : 'Start Next Level');
+            }
+            nextLevelModal.classList.add('visible');
+            nextLevelModal.setAttribute('aria-hidden','false');
+          };
+          
+          window.hideNextLevelPrompt = function(){
+            if (!nextLevelModal) {
+              nextLevelCallbacks = null;
+              return;
+            }
+            nextLevelModal.classList.remove('visible');
+            nextLevelModal.setAttribute('aria-hidden','true');
+            nextLevelCallbacks = null;
+          };
+          
+          if (btnStartNextLevel) {
+            btnStartNextLevel.addEventListener('click', function(){
+              if (nextLevelModal && nextLevelModal.classList.contains('visible')) {
+                window.hideNextLevelPrompt();
+              }
+              if (nextLevelCallbacks && typeof nextLevelCallbacks.onStart === 'function') {
+                var cb = nextLevelCallbacks.onStart;
+                nextLevelCallbacks = null;
+                cb();
+              }
+            });
+          }
 
           function ensureHomeSceneVisible() {
             document.body.classList.add('home-visible');
@@ -669,6 +742,9 @@
               window.continuingFromRV = false;
               console.log('Pacman: Reset RV flags on Play Again - caching will happen');
               window.hideGameOverOverlay({hideHome: true});
+              if (typeof window.hideNextLevelPrompt === 'function') {
+                window.hideNextLevelPrompt();
+              }
               gameStartedByUser = true;
               // Clear game over flag to allow game to start
               window.isGameOver = false;
@@ -1300,6 +1376,9 @@
                 
                 if (typeof window.hideGameOverOverlay === 'function') {
                   window.hideGameOverOverlay();
+                }
+                if (typeof window.hideNextLevelPrompt === 'function') {
+                  window.hideNextLevelPrompt();
                 }
                 
                 // Stop/pause all audio when closing game
