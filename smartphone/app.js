@@ -1582,29 +1582,31 @@ var PACMAN = (function () {
 
             var adReady = (typeof showAd === 'function') && window.isAdReady === true;
             if (adReady) {
-                console.log("Pacman: Showing interstitial ad before next level popup");
+                console.log("Pacman: Showing interstitial ad before next level popup (delayed)");
                 if (typeof window !== "undefined") {
                     window.nextLevelPopupPending = true;
                     window.nextLevelPopupCallback = showNextLevelPopup;
                     window.pendingNextLevelLevel = level;
                     window.pendingNextLevelScore = nextLevelScore;
                 }
-                try {
-                    if (typeof window !== "undefined") {
-                        window.skipPauseKeyOnNextAd = true;
+                setTimeout(function(){
+                    try {
+                        if (typeof window !== "undefined") {
+                            window.skipPauseKeyOnNextAd = true;
+                        }
+                        showAd();
+                    } catch (showErr) {
+                        console.log("Pacman: Failed to show ad before next level popup", showErr);
+                        if (typeof window !== "undefined") {
+                            window.skipPauseKeyOnNextAd = false;
+                            window.nextLevelPopupPending = false;
+                            window.nextLevelPopupCallback = null;
+                            window.pendingNextLevelLevel = null;
+                            window.pendingNextLevelScore = null;
+                        }
+                        showNextLevelPopup();
                     }
-                    showAd();
-                } catch (showErr) {
-                    console.log("Pacman: Failed to show ad before next level popup", showErr);
-                    if (typeof window !== "undefined") {
-                        window.skipPauseKeyOnNextAd = false;
-                        window.nextLevelPopupPending = false;
-                        window.nextLevelPopupCallback = null;
-                        window.pendingNextLevelLevel = null;
-                        window.pendingNextLevelScore = null;
-                    }
-                    showNextLevelPopup();
-                }
+                }, window.nextLevelAdDelay || 1200);
             } else {
                 showNextLevelPopup();
             }
