@@ -785,7 +785,7 @@ var PACMAN = (function () {
         ghostSpecs   = ["#00FFDE", "#FF0000", "#FFB8DE", "#FFB847"],
         eatenCount   = 0,
         totalGhostsEaten = 0, // Track total ghosts eaten for mid-roll ad
-        level        = 0,
+        level        = 1, // Initialize to 1 to prevent showing 0 on game load
         tick         = 0,
         ghostPos, userPos, 
         stateChanged = true,
@@ -882,10 +882,9 @@ var PACMAN = (function () {
         map.reset();
         map.draw(ctx);
         
-        // For testing: Level 1 has only 1 ghost, other levels have all 4 ghosts
         // Recreate ghosts based on current level
         ghosts = []; // Clear existing ghosts
-        var numGhosts = (level === 1) ? 1 : ghostSpecs.length;
+        var numGhosts = ghostSpecs.length;
         for (var i = 0; i < numGhosts; i += 1) {
             var ghost = new Pacman.Ghost({"getTick":getTick, "getLevel": function() { return level; }}, map, ghostSpecs[i]);
             ghosts.push(ghost);
@@ -1537,9 +1536,9 @@ var PACMAN = (function () {
             totalGhostsEaten = 0; // Reset ghost count for new level
 
             function startNextLevelNow() {
-                // Recreate ghosts based on current level (Level 1 = 1 ghost, others = 4 ghosts)
+                // Recreate ghosts based on current level
                 ghosts = [];
-                var numGhosts = (level === 1) ? 1 : ghostSpecs.length;
+                var numGhosts = ghostSpecs.length;
                 for (var i = 0; i < numGhosts; i += 1) {
                     var ghost = new Pacman.Ghost({"getTick":getTick, "getLevel": function() { return level; }}, map, ghostSpecs[i]);
                     ghosts.push(ghost);
@@ -1823,10 +1822,10 @@ var PACMAN = (function () {
             if (map && typeof map.reset === 'function') {
                 map.reset(); // Reset map for fresh start on same level
             }
-            // Recreate ghosts based on the level we're resuming (Level 1 = 1 ghost, others = full roster)
+            // Recreate ghosts based on the level we're resuming
             try {
                 ghosts = [];
-                var ghostCount = (level === 1) ? 1 : ghostSpecs.length;
+                var ghostCount = ghostSpecs.length;
                 for (var g = 0; g < ghostCount; g += 1) {
                     ghosts.push(new Pacman.Ghost({"getTick":getTick, "getLevel": function() { return level; }}, map, ghostSpecs[g]));
                 }
