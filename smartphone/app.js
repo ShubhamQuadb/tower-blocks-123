@@ -1000,15 +1000,19 @@ var PACMAN = (function () {
 
     function loseLife() {        
         user.loseLife();
+        var remainingLives = user.getLives();
+        console.log("Pacman: Life lost. Remaining lives: " + remainingLives + ", Current level: " + level);
         
-        if (user.getLives() > 0) {
+        if (remainingLives > 0) {
+            // Still have lives - just restart the level, NO RV video
+            console.log("Pacman: Lives remaining (" + remainingLives + "), restarting level " + level);
             setState(WAITING);
             startLevel();
         } else {
-            // Game Over with rewarded continue flow
+            // ALL lives finished - Game Over with rewarded continue flow
             var finalScore = user.theScore();
             var finalLevel = level;
-            console.log("Pacman: Game Over - Score: " + finalScore + ", Level: " + finalLevel);
+            console.log("Pacman: Game Over - All lives finished. Score: " + finalScore + ", Level: " + finalLevel);
             
             // Mark that game is over - prevent auto-start
             window.isGameOver = true;
@@ -1049,12 +1053,32 @@ var PACMAN = (function () {
             };
             
             // Game Over Flow: Priority - RV video first, then showAds
+            // IMPORTANT: Only show RV video when ALL lives are finished (lives <= 0)
             // Don't show game over popup immediately if RV is available - show RV confirmation first
             // Show popup immediately without delay
             (function() {
                 try {
+                    // Double-check that all lives are truly finished before showing RV video
+                    var currentLives = user.getLives();
+                    if (currentLives > 0) {
+                        console.log("Pacman: ERROR - RV video check triggered but lives > 0 (" + currentLives + "). Skipping RV video.");
+                        // Should not happen, but if it does, just show game over popup
+                        try {
+                            if (window.showGameOverOverlay) {
+                                window.showGameOverOverlay({
+                                    score: finalScore,
+                                    level: finalLevel
+                                });
+                            }
+                        } catch(e) {
+                            console.log("Pacman: Error showing game over overlay", e);
+                        }
+                        return;
+                    }
+                    
                     // Check if RV video is available AND hasn't been used yet in this session
-                    if (window.isRVReady === true && !window.rvVideoUsedOnce) {
+                    // AND all lives are finished (lives <= 0)
+                    if (window.isRVReady === true && !window.rvVideoUsedOnce && currentLives <= 0) {
                         // RV video available - show confirmation popup FIRST (before game over popup)
                         console.log("Pacman: RV video available, showing confirmation popup BEFORE game over popup");
                         if (typeof window.showRewardPrompt === 'function') {
